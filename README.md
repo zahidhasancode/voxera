@@ -139,7 +139,14 @@ VOXERA/
 │   │   └── metrics.py            # StreamingMetrics (singleton), FrameMetrics
 │   ├── main.py
 │   └── ...
-├── web/                          # Vite + React frontend
+├── dashboard/                    # SaaS admin dashboard (React, Stripe, RBAC, orgs)
+│   ├── src/
+│   │   ├── components/           # Layout, UI, auth
+│   │   ├── contexts/             # Auth, Org (multi-tenant)
+│   │   ├── pages/                # Overview, Agents, KB, API keys, Billing, etc.
+│   │   └── lib/                  # Stripe, API client
+│   └── README.md
+├── web/                          # Vite + React voice demo frontend
 │   ├── src/
 │   │   ├── websocket/            # VoxeraWebSocket client
 │   │   ├── audio/                # PCM16Player (Web Audio API)

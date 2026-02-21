@@ -27,6 +27,12 @@ class STTConsumer:
             ]
         ] = None,
         max_queue_size: int = 50,
+        error_callback: Optional[
+            Union[
+                Callable[[str, BaseException], Awaitable[None]],
+                Callable[[str, BaseException], None],
+            ]
+        ] = None,
     ):
         """Initialize STT consumer.
 
@@ -34,10 +40,12 @@ class STTConsumer:
             engine: StreamingSTTEngine instance
             transcript_callback: Async callback for transcript events
             max_queue_size: Maximum queue size for audio frames
+            error_callback: Optional (component_name, error) when processing fails
         """
         self.engine = engine
         self.transcript_callback = transcript_callback
         self.max_queue_size = max_queue_size
+        self.error_callback = error_callback
         self._queue: asyncio.Queue[Optional[bytes]] = asyncio.Queue(maxsize=max_queue_size)
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -186,6 +194,18 @@ class STTConsumer:
                     extra_fields={"error": str(e)},
                     exc_info=True,
                 )
+                if self.error_callback:
+                    try:
+                        if asyncio.iscoroutinefunction(self.error_callback):
+                            await self.error_callback("stt", e)
+                        else:
+                            self.error_callback("stt", e)
+                    except Exception as cb_err:
+                        logger.error(
+                            "Error in STT error_callback",
+                            extra_fields={"error": str(cb_err)},
+                            exc_info=True,
+                        )
 
         logger.debug("STT consumer processing loop ended")
 

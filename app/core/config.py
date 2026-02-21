@@ -69,6 +69,12 @@ class Settings(BaseSettings):
         description="Secret key for encryption and JWT tokens",
     )
 
+    # Twilio (optional: public base URL for TwiML stream URL in production)
+    TWILIO_PUBLIC_BASE_URL: Optional[str] = Field(
+        default=None,
+        description="Public base URL for Twilio (e.g. https://your-domain.com). Used to build wss:// stream URL.",
+    )
+
     # WebSocket
     WEBSOCKET_MAX_CONNECTIONS: Optional[int] = Field(
         default=None,

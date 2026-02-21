@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.telephony.twilio_handler import router as twilio_router
 from app.core.logger import get_logger
 from app.core.logging_config import setup_logging
 from app.core.middleware import RequestContextMiddleware
@@ -58,8 +59,11 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include routers
+    # Include routers: API v1 (includes existing WebSocket at /api/v1/)
     app.include_router(api_router, prefix=settings.API_V1_STR)
+
+    # Twilio inbound voice (isolated: POST /twilio/inbound, WS /twilio/stream)
+    app.include_router(twilio_router)
 
     return app
 
