@@ -62,3 +62,10 @@ dmypy.json
 
 # Poetry
 poetry.lock
+
+# Node / Dashboard
+node_modules/
+dashboard/node_modules/
+*.tsbuildinfo
+dashboard/dist/
+.cursor/
