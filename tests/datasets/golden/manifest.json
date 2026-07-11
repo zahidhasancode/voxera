@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "description": "Golden evaluation datasets for VOXERA enterprise QA",
+  "domains": [
+    "healthcare",
+    "ecommerce",
+    "banking",
+    "telecom",
+    "insurance",
+    "travel",
+    "support"
+  ]
+}

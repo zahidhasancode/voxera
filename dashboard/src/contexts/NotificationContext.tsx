@@ -25,29 +25,10 @@ type NotificationContextValue = {
   removeNotification: (id: string) => void;
 };
 
-const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "n1",
-    type: "success",
-    title: "Agent deployed",
-    message: "Support Agent is now live in production.",
-    read: false,
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: "n2",
-    type: "info",
-    title: "Scheduled maintenance",
-    message: "Planned maintenance on March 28, 02:00–04:00 UTC.",
-    read: true,
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
-
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,

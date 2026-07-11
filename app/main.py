@@ -7,10 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.exception_handlers import register_exception_handlers
+from app.core.rate_limit import RateLimitMiddleware
+from app.core.timeout import RequestTimeoutMiddleware
+from app.database import close_database, init_database
+from app.iam.middleware.authentication import AuthenticationMiddleware
 from app.telephony.twilio_handler import router as twilio_router
 from app.core.logger import get_logger
 from app.core.logging_config import setup_logging
 from app.core.middleware import RequestContextMiddleware
+from app.core.shutdown import shutdown_manager
 
 logger = get_logger(__name__)
 
@@ -18,23 +24,36 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
-    # Startup
     logger.info(
         "Starting VOXERA backend",
         extra_fields={
             "environment": settings.ENVIRONMENT,
             "version": "0.1.0",
             "debug": settings.DEBUG,
+            "database_enabled": settings.database_enabled,
         },
     )
+    await init_database()
+    settings.validate_security_settings()
+    from app.voice.registry import validate_voice_platform
+
+    if settings.database_enabled:
+        from app.infrastructure.knowledge.providers import validate_knowledge_platform
+
+        await validate_knowledge_platform()
+    await validate_voice_platform()
     yield
-    # Shutdown
-    logger.info("Shutting down VOXERA backend")
+    logger.info("Initiating graceful shutdown")
+    await shutdown_manager.initiate_shutdown(
+        drain_timeout_seconds=settings.SHUTDOWN_DRAIN_TIMEOUT_SECONDS
+    )
+    await shutdown_manager.close_websockets()
+    await close_database()
+    logger.info("VOXERA backend shutdown complete")
 
 
 def create_application() -> FastAPI:
     """Create and configure FastAPI application."""
-    # Setup structured logging first
     setup_logging()
 
     app = FastAPI(
@@ -47,10 +66,13 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Request context middleware (must be first to set context)
-    app.add_middleware(RequestContextMiddleware)
+    register_exception_handlers(app)
 
-    # CORS middleware
+    # Middleware: last added = outermost (first on inbound request)
+    app.add_middleware(AuthenticationMiddleware)
+    app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(RequestTimeoutMiddleware)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -59,10 +81,7 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include routers: API v1 (includes existing WebSocket at /api/v1/)
     app.include_router(api_router, prefix=settings.API_V1_STR)
-
-    # Twilio inbound voice (isolated: POST /twilio/inbound, WS /twilio/stream)
     app.include_router(twilio_router)
 
     return app

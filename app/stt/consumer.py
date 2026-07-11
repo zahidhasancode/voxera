@@ -99,6 +99,9 @@ class STTConsumer:
                 except asyncio.CancelledError:
                     pass
 
+        if hasattr(self.engine, "close"):
+            await self.engine.close()
+
         logger.info(
             "STT consumer stopped",
             extra_fields={

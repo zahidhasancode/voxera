@@ -1,8 +1,16 @@
 import { Download } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useBilling } from "@/contexts/BillingContext";
 
 export function Invoices() {
@@ -10,76 +18,49 @@ export function Invoices() {
 
   return (
     <>
-      <PageHeader
-        title="Invoices"
-        description="Download and view billing history"
-      />
+      <PageHeader title="Invoices" description="Download and view billing history" />
       <Card>
-        <CardHeader
-          title="Invoice history"
-          description="Paid and open invoices"
-        />
+        <CardHeader title="Invoice history" description="Paid and open invoices" />
         <CardContent className="p-0">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                <th className="px-6 py-3 font-medium">Number</th>
-                <th className="px-6 py-3 font-medium">Date</th>
-                <th className="px-6 py-3 font-medium">Period</th>
-                <th className="px-6 py-3 font-medium">Amount</th>
-                <th className="px-6 py-3 font-medium">Status</th>
-                <th className="px-6 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="border-0 rounded-none">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Number</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Period</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead aria-hidden />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {invoices.map((inv) => (
-                <tr
-                  key={inv.id}
-                  className="border-b border-border/50 transition-colors hover:bg-hover/50"
-                >
-                  <td className="px-6 py-4 font-mono text-sm text-white">
-                    {inv.number}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {inv.date}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">
+                <TableRow key={inv.id}>
+                  <TableCell className="font-mono text-sm">{inv.number}</TableCell>
+                  <TableCell className="text-muted-foreground">{inv.date}</TableCell>
+                  <TableCell className="text-muted-foreground">
                     {inv.periodStart} – {inv.periodEnd}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-white">
-                    ${(inv.amountPaid || inv.amountDue).toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge
-                      variant={
-                        inv.status === "paid"
-                          ? "success"
-                          : inv.status === "open"
-                          ? "warning"
-                          : "default"
-                      }
-                    >
+                  </TableCell>
+                  <TableCell>${(inv.amountPaid || inv.amountDue).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge variant={inv.status === "paid" ? "success" : inv.status === "open" ? "warning" : "default"}>
                       {inv.status}
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell>
                     {inv.invoicePdfUrl && (
-                      <a
-                        href={inv.invoicePdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                      <a href={inv.invoicePdfUrl} target="_blank" rel="noopener noreferrer">
                         <Button variant="ghost" size="sm">
-                          <Download className="mr-2 h-4 w-4" />
+                          <Download className="h-4 w-4" />
                           PDF
                         </Button>
                       </a>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </>

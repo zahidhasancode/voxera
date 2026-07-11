@@ -1,0 +1,20 @@
+{{- if .Values.canary.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "voxera.fullname" . }}-api-canary
+  labels:
+    {{- include "voxera.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api-canary
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - port: {{ .Values.api.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "voxera.name" . }}
+    app.kubernetes.io/component: api
+    voxera.io/canary: "true"
+{{- end }}

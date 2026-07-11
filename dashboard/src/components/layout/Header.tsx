@@ -2,13 +2,16 @@ import {
   Bell,
   ChevronDown,
   LogOut,
+  Menu,
   Monitor,
   Plus,
-  User,
+  Settings,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Avatar } from "@/components/ui/Avatar";
+import { Breadcrumbs, useAppBreadcrumbs } from "@/components/layout/Breadcrumbs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnv } from "@/contexts/EnvContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -24,7 +27,9 @@ function formatNotificationTime(iso: string) {
   return d.toLocaleDateString();
 }
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
+  const location = useLocation();
+  const breadcrumbs = useAppBreadcrumbs(location.pathname);
   const { user, signOut, sessions } = useAuth();
   const { environment, setEnvironment } = useEnv();
   const { currentOrg, organizations, setCurrentOrg } = useOrg();
@@ -60,8 +65,19 @@ export function Header() {
   const envLabel = environment === "development" ? "Dev" : "Prod";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background px-6 shadow-soft">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="rounded-lg p-2 text-muted-foreground hover:bg-hover lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        {breadcrumbs.length > 0 ? (
+          <Breadcrumbs items={breadcrumbs} />
+        ) : (
         <div className="relative" ref={orgRef}>
           <button
             type="button"
@@ -74,7 +90,9 @@ export function Header() {
                 alt=""
                 className="h-6 w-6 rounded-lg object-cover shrink-0"
               />
-            ) : null}
+            ) : (
+              <Avatar name={currentOrg?.name ?? "Org"} size="sm" />
+            )}
             <span className="max-w-[140px] truncate">
               {currentOrg?.name ?? "Select org"}
             </span>
@@ -124,8 +142,9 @@ export function Header() {
             </div>
           )}
         </div>
-
-        <div className="relative" ref={envRef}>
+        )}
+        {breadcrumbs.length === 0 && (
+        <div className="relative hidden sm:block" ref={envRef}>
           <button
             type="button"
             onClick={() => setEnvOpen((o) => !o)}
@@ -158,6 +177,7 @@ export function Header() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -167,7 +187,7 @@ export function Header() {
           className="hidden items-center gap-2 rounded-xl px-3 py-2 text-2xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-hover hover:text-foreground sm:flex"
           title="System status"
         >
-          <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
+          <span className="h-2 w-2 shrink-0 rounded-full bg-success shadow-[0_0_6px_rgba(5,150,105,0.5)]" />
           All systems operational
         </a>
 
@@ -243,9 +263,7 @@ export function Header() {
             onClick={() => setUserOpen((o) => !o)}
             className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground transition-colors duration-200 hover:bg-hover"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-border">
-              <User className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <Avatar name={user?.name ?? "User"} size="sm" />
             <span className="hidden font-medium sm:inline">{user?.name}</span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -265,7 +283,7 @@ export function Header() {
                   onClick={() => setUserOpen(false)}
                   className="dropdown-item"
                 >
-                  <User className="h-4 w-4 shrink-0" />
+                  <Settings className="h-4 w-4 shrink-0" />
                   Settings
                 </Link>
                 <Link
@@ -278,8 +296,8 @@ export function Header() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => {
-                    signOut();
+                  onClick={async () => {
+                    await signOut();
                     setUserOpen(false);
                   }}
                   className="dropdown-item w-full text-left"

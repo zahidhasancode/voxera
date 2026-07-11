@@ -28,13 +28,13 @@ export function UsageProgressBar({
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-white">{label}</span>
+          <span className="text-sm font-medium text-foreground">{label}</span>
           {(isWarning || isOver) && (
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
           )}
         </div>
         <div className="text-right">
-          <span className="font-semibold tabular-nums text-white">
+          <span className="font-semibold tabular-nums text-foreground">
             {used.toLocaleString()}
           </span>
           {!isUnlimited && (

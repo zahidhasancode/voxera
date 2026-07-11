@@ -11,17 +11,20 @@ transcripts are injected into TurnManager. Barge-in supported; event loop not bl
 import xml.etree.ElementTree as ET
 from typing import Optional
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 
 from app.core.config import settings
 from app.core.logger import get_logger
+from app.telephony.twilio_validation import require_twilio_signature
 from app.telephony.twilio_stream import (
     TwilioStreamSession,
     handle_twilio_event,
     parse_twilio_message,
 )
 from app.telephony.call_session import CallSession
+from app.telephony.session_registry import call_session_registry
+from app.telephony.stream_auth import build_signed_stream_url, verify_stream_token
 from app.telephony.telephony_log import log_telephony
 
 logger = get_logger(__name__)
@@ -53,12 +56,10 @@ def _build_stream_url(request: Request) -> str:
     return f"{scheme}://{netloc}/twilio/stream"
 
 
-def _twiml_connect_stream(stream_url: str) -> str:
-    """Build TwiML Response with Connect/Stream for bidirectional Media Stream.
-
-    Twilio will connect to stream_url via WebSocket and stream call audio;
-    execution of further TwiML is blocked until the stream is closed by our server.
-    """
+def _twiml_connect_stream(stream_url: str, call_sid: str | None = None) -> str:
+    """Build TwiML Response with Connect/Stream for bidirectional Media Stream."""
+    if call_sid:
+        stream_url = build_signed_stream_url(stream_url, call_sid)
     root = ET.Element("Response")
     connect = ET.SubElement(root, "Connect")
     ET.SubElement(connect, "Stream", url=stream_url)
@@ -76,7 +77,10 @@ def _twiml_connect_stream(stream_url: str) -> str:
     summary="Twilio voice webhook",
     description="Returns TwiML that connects the incoming call to the Media Stream WebSocket.",
 )
-async def twilio_inbound(request: Request) -> Response:
+async def twilio_inbound(
+    request: Request,
+    form: dict[str, str] = Depends(require_twilio_signature),
+) -> Response:
     """Handle Twilio inbound voice webhook.
 
     Twilio sends a POST with form fields (CallSid, From, To, etc.).
@@ -87,10 +91,10 @@ async def twilio_inbound(request: Request) -> Response:
         "Twilio inbound webhook",
         extra_fields={
             "stream_url": stream_url,
-            "call_sid": (await request.form()).get("CallSid"),
+            "call_sid": form.get("CallSid"),
         },
     )
-    twiml = _twiml_connect_stream(stream_url)
+    twiml = _twiml_connect_stream(stream_url, form.get("CallSid"))
     return Response(
         content=twiml,
         media_type="application/xml",
@@ -100,15 +104,20 @@ async def twilio_inbound(request: Request) -> Response:
 
 @router.websocket("/stream")
 async def twilio_stream_websocket(websocket: WebSocket) -> None:
-    """Twilio Media Streams WebSocket endpoint.
+    """Twilio Media Streams WebSocket endpoint."""
+    expected_call_sid = websocket.query_params.get("call_sid")
+    token = websocket.query_params.get("token")
+    auth_token = (settings.TWILIO_AUTH_TOKEN or "").strip()
+    if auth_token:
+        if not expected_call_sid or not token:
+            await websocket.close(code=4403)
+            return
+        try:
+            verify_stream_token(expected_call_sid, token)
+        except Exception:
+            await websocket.close(code=4403)
+            return
 
-    Accepts Twilio events: connected, start, media, stop.
-    - start: creates per-call session and STT pipeline (state, turn_manager, STT consumer).
-    - media: decodes base64 μ-law, converts to PCM16 16 kHz, buffers and feeds 20 ms frames
-      into STT; transcripts are converted to TranscriptEvent and injected into turn_manager.
-    - stop: stops STT consumer and tears down pipeline and session.
-    Barge-in is handled by TurnManager; STT engine is reset on user interrupt.
-    """
     await websocket.accept()
     logger.info("Twilio Media Stream WebSocket connected")
     session: Optional[TwilioStreamSession] = None
@@ -134,6 +143,17 @@ async def twilio_stream_websocket(websocket: WebSocket) -> None:
 
                 # Create call session on first session (stream start)
                 if session is not None and call_session is None:
+                    if expected_call_sid and session.call_sid != expected_call_sid:
+                        log_telephony(
+                            "error",
+                            call_sid=session.call_sid,
+                            stream_sid=session.stream_sid,
+                            level="warning",
+                            component="stream_auth",
+                            reason="call_sid_mismatch",
+                        )
+                        await websocket.close(code=4403)
+                        return
                     call_session = CallSession(
                         call_sid=session.call_sid,
                         stream_sid=session.stream_sid,
@@ -145,13 +165,24 @@ async def twilio_stream_websocket(websocket: WebSocket) -> None:
                         send_json=websocket.send_json,
                         on_silence_hangup=silence_hangup,
                     )
+                    await call_session_registry.register(
+                        call_sid=session.call_sid,
+                        stream_sid=session.stream_sid,
+                        conversation_id=str(call_session.conversation_id),
+                    )
 
                 # Feed decoded μ-law into STT (convert to PCM, buffer, dispatch frames)
                 if decoded_chunk and call_session:
+                    await call_session_registry.heartbeat(call_session.call_sid)
+                    await call_session_registry.update_state(
+                        call_session.call_sid,
+                        call_session.state.value,
+                    )
                     await call_session.feed_mulaw(decoded_chunk)
 
                 # Teardown when stream stops (session cleared)
                 if session is None and call_session is not None:
+                    await call_session_registry.unregister(call_session.call_sid)
                     await call_session.stop()
                     call_session = None
 
@@ -198,6 +229,7 @@ async def twilio_stream_websocket(websocket: WebSocket) -> None:
         )
         if call_session:
             try:
+                await call_session_registry.unregister(call_session.call_sid)
                 await call_session.stop()
             except Exception as e:
                 log_telephony(
@@ -214,6 +246,7 @@ async def twilio_stream_websocket(websocket: WebSocket) -> None:
     except Exception as e:
         if call_session:
             try:
+                await call_session_registry.unregister(call_session.call_sid)
                 await call_session.stop()
             except Exception as stop_err:
                 log_telephony(

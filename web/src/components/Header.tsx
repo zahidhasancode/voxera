@@ -1,56 +1,56 @@
+import { Shield } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useVoxera } from "@/store/VoxeraContext";
 
 export function Header() {
-  const { connectionStatus, connect, disconnect } = useVoxera();
+  const { connectionStatus, connect, disconnect, connectionError } = useVoxera();
+
+  const statusVariant =
+    connectionStatus === "connected"
+      ? "success"
+      : connectionStatus === "connecting"
+      ? "warning"
+      : connectionError
+      ? "error"
+      : "default";
+
+  const statusLabel =
+    connectionStatus === "connected"
+      ? "Connected"
+      : connectionStatus === "connecting"
+      ? "Connecting…"
+      : connectionError
+      ? "Error"
+      : "Disconnected";
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-voxera-border bg-voxera-surface-elevated">
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-voxera-brand flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="currentColor">
-              <path d="M12 2a3 3 0 0 1 3 3v2.18a3 3 0 0 1 1.5 5.194v.612a3 3 0 0 1-1.5 5.194V18a3 3 0 0 1-6 0v-.612a3 3 0 0 1-1.5-5.194v-.612A3 3 0 0 1 9 7.18V5a3 3 0 0 1 3-3z" />
-            </svg>
-          </div>
-          <span className="text-lg font-semibold text-white">Voxera</span>
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+          <Shield className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-medium">Dev</span>
+        <div>
+          <span className="text-lg font-semibold text-foreground">VOXERA</span>
+          <p className="text-2xs text-muted-foreground">Voice demo</p>
+        </div>
+        {import.meta.env.DEV && (
+          <Badge variant="warning">Dev</Badge>
+        )}
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span
-            className={`inline-block w-2 h-2 rounded-full ${
-              connectionStatus === "connected"
-                ? "bg-latency-good animate-pulse"
-                : connectionStatus === "connecting"
-                ? "bg-amber-500 animate-pulse-soft"
-                : "bg-slate-500"
-            }`}
-          />
-          <span className="text-sm text-voxera-muted">
-            {connectionStatus === "connected"
-              ? "Connected"
-              : connectionStatus === "connecting"
-              ? "Connecting…"
-              : "Disconnected"}
-          </span>
-        </div>
+      <div className="flex items-center gap-3">
+        <Badge variant={statusVariant}>{statusLabel}</Badge>
+        <ThemeToggle />
         {connectionStatus === "connected" ? (
-          <button
-            onClick={disconnect}
-            className="text-sm px-3 py-1.5 rounded-md border border-voxera-border text-voxera-muted hover:bg-voxera-border/30 hover:text-white transition-colors"
-          >
+          <Button variant="outline" size="sm" onClick={disconnect}>
             Disconnect
-          </button>
+          </Button>
         ) : (
-          <button
-            onClick={connect}
-            disabled={connectionStatus === "connecting"}
-            className="text-sm px-3 py-1.5 rounded-md bg-voxera-brand hover:bg-voxera-brand-light text-white transition-colors disabled:opacity-50"
-          >
+          <Button size="sm" onClick={connect} loading={connectionStatus === "connecting"}>
             Connect
-          </button>
+          </Button>
         )}
       </div>
     </header>

@@ -76,11 +76,10 @@ class StreamingLLMEngine(ABC):
         ...
 
     def last_metrics(self) -> LLMGenerationMetrics:
-        """Return metrics from the most recent stream() run.
-
-        Valid after the async iterator is exhausted or cancelled.
-        """
         return getattr(self, "_last_metrics", None) or LLMGenerationMetrics()
+
+    async def validate_connection(self) -> None:
+        """Verify provider credentials and connectivity. Override in production engines."""
 
 
 class MockStreamingLLMEngine(StreamingLLMEngine):

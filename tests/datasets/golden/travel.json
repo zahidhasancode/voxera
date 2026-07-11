@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "domain": "travel",
+  "cases": [
+    {
+      "id": "tr-001",
+      "utterance": "I need to book an appointment to change my flight",
+      "expected_intent": "appointment",
+      "expected_tools": ["booking_change"],
+      "verifier_should_approve": false,
+      "tags": ["bookings"]
+    },
+    {
+      "id": "tr-002",
+      "utterance": "I have a complaint about my hotel reservation",
+      "expected_intent": "complaint",
+      "expected_tools": [],
+      "verifier_should_approve": true,
+      "tags": ["complaints"]
+    }
+  ]
+}

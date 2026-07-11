@@ -1,0 +1,28 @@
+global:
+  environment: production
+
+api:
+  replicaCount: 4
+  autoscaling:
+    enabled: true
+    minReplicas: 4
+    maxReplicas: 50
+    targetCPUUtilizationPercentage: 65
+  resources:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+
+dashboard:
+  replicaCount: 3
+
+featureFlags:
+  voiceRequireProviders: true
+  knowledgeRequireProviders: true
+
+canary:
+  enabled: true
+  weight: 5

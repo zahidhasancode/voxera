@@ -1,0 +1,14 @@
+{{- if .Values.api.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "voxera.fullname" . }}-api
+  labels:
+    {{- include "voxera.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.api.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "voxera.name" . }}
+      app.kubernetes.io/component: api
+{{- end }}

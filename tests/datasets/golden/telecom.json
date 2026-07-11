@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "domain": "telecom",
+  "cases": [
+    {
+      "id": "tm-001",
+      "utterance": "My internet is not working since this morning",
+      "expected_intent": "technical_issue",
+      "expected_tools": ["network_diagnostics"],
+      "verifier_should_approve": true,
+      "tags": ["support"]
+    },
+    {
+      "id": "tm-002",
+      "utterance": "I want to cancel subscription on my mobile plan",
+      "expected_intent": "cancel_subscription",
+      "expected_tools": ["subscription"],
+      "verifier_should_approve": false,
+      "tags": ["retention"]
+    }
+  ]
+}

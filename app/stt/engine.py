@@ -41,6 +41,12 @@ class StreamingSTTEngine(ABC):
         """Reset engine state (e.g., on new utterance or interruption)."""
         pass
 
+    async def close(self) -> None:
+        """Release provider connections. Override when the engine holds sockets."""
+
+    async def validate_connection(self) -> None:
+        """Verify provider credentials and connectivity. Override in production engines."""
+
 
 class MockSTTEngine(StreamingSTTEngine):
     """Mock STT engine for testing and development.

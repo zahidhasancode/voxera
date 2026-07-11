@@ -12,7 +12,13 @@ from app.core.config import settings
 
 # Context variables for async-safe request/call ID propagation
 request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
+correlation_id_var: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
 call_id_var: ContextVar[Optional[str]] = ContextVar("call_id", default=None)
+tenant_id_var: ContextVar[Optional[str]] = ContextVar("tenant_id", default=None)
+organization_id_var: ContextVar[Optional[str]] = ContextVar("organization_id", default=None)
+user_id_var: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
+http_method_var: ContextVar[Optional[str]] = ContextVar("http_method", default=None)
+endpoint_var: ContextVar[Optional[str]] = ContextVar("endpoint", default=None)
 
 
 class JSONFormatter(logging.Formatter):
@@ -37,10 +43,34 @@ class JSONFormatter(logging.Formatter):
         if request_id:
             log_data["request_id"] = request_id
 
+        correlation_id = correlation_id_var.get()
+        if correlation_id:
+            log_data["correlation_id"] = correlation_id
+
         # Add call_id if available
         call_id = call_id_var.get()
         if call_id:
             log_data["call_id"] = call_id
+
+        tenant_id = tenant_id_var.get()
+        if tenant_id:
+            log_data["tenant_id"] = tenant_id
+
+        organization_id = organization_id_var.get()
+        if organization_id:
+            log_data["organization_id"] = organization_id
+
+        user_id = user_id_var.get()
+        if user_id:
+            log_data["user_id"] = user_id
+
+        http_method = http_method_var.get()
+        if http_method:
+            log_data["method"] = http_method
+
+        endpoint = endpoint_var.get()
+        if endpoint:
+            log_data["endpoint"] = endpoint
 
         # Add exception info if present
         if record.exc_info:
@@ -216,4 +246,38 @@ def get_call_id() -> Optional[str]:
 def clear_context() -> None:
     """Clear all context variables."""
     request_id_var.set(None)
+    correlation_id_var.set(None)
     call_id_var.set(None)
+    tenant_id_var.set(None)
+    organization_id_var.set(None)
+    user_id_var.set(None)
+    http_method_var.set(None)
+    endpoint_var.set(None)
+
+
+def set_correlation_id(correlation_id: Optional[str]) -> None:
+    correlation_id_var.set(correlation_id)
+
+
+def get_correlation_id() -> Optional[str]:
+    return correlation_id_var.get()
+
+
+def set_tenant_id(tenant_id: Optional[str]) -> None:
+    tenant_id_var.set(tenant_id)
+
+
+def set_organization_id(organization_id: Optional[str]) -> None:
+    organization_id_var.set(organization_id)
+
+
+def set_user_id(user_id: Optional[str]) -> None:
+    user_id_var.set(user_id)
+
+
+def set_http_method(method: Optional[str]) -> None:
+    http_method_var.set(method)
+
+
+def set_endpoint(endpoint: Optional[str]) -> None:
+    endpoint_var.set(endpoint)

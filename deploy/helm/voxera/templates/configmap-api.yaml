@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "voxera.fullname" . }}-api-config
+  labels:
+    {{- include "voxera.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+data:
+  ENVIRONMENT: {{ .Values.global.environment | quote }}
+  WORKERS: {{ .Values.api.env.WORKERS | default "4" | quote }}
+  RUN_MIGRATIONS: {{ .Values.api.env.RUN_MIGRATIONS | default "true" | quote }}
+  VALIDATE_CONFIG: {{ .Values.api.env.VALIDATE_CONFIG | default "true" | quote }}
+  KNOWLEDGE_STORAGE_PATH: {{ .Values.api.env.KNOWLEDGE_STORAGE_PATH | default "/data/knowledge" | quote }}
+  VOICE_REQUIRE_PROVIDERS: {{ .Values.featureFlags.voiceRequireProviders | quote }}
+  KNOWLEDGE_REQUIRE_PROVIDERS: {{ .Values.featureFlags.knowledgeRequireProviders | quote }}
+  IAM_SECRET_PROVIDER: {{ .Values.secrets.provider | quote }}

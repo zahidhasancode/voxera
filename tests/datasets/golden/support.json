@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "domain": "support",
+  "cases": [
+    {
+      "id": "sp-001",
+      "utterance": "The app has an error when I open settings",
+      "expected_intent": "technical_issue",
+      "expected_tools": [],
+      "verifier_should_approve": true,
+      "tags": ["support"]
+    },
+    {
+      "id": "sp-002",
+      "utterance": "I am frustrated waiting 40 minutes, this is unacceptable",
+      "expected_intent": "complaint",
+      "expected_tools": [],
+      "verifier_should_approve": false,
+      "tags": ["escalation"]
+    },
+    {
+      "id": "sp-003",
+      "utterance": "What is your enterprise pricing?",
+      "expected_intent": "general_question",
+      "expected_tools": ["knowledge_base"],
+      "verifier_should_approve": true,
+      "tags": ["sales"]
+    }
+  ]
+}

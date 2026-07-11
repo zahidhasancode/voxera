@@ -1,88 +1,114 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Input } from "@/components/ui/Input";
-import type { AuditLogEntry } from "@/types";
-
-const MOCK_ENTRIES: AuditLogEntry[] = [
-  { id: "1", action: "member.invited", actorEmail: "admin@acme.com", actorName: "Alex Morgan", resourceType: "invitation", resourceId: "inv_1", metadata: { email: "new@acme.com", role: "developer" }, timestamp: "2024-03-10T14:32:00Z" },
-  { id: "2", action: "member.role_updated", actorEmail: "admin@acme.com", actorName: "Alex Morgan", resourceType: "member", resourceId: "mem_2", metadata: { previousRole: "viewer", newRole: "developer" }, timestamp: "2024-03-09T11:20:00Z" },
-  { id: "3", action: "api_key.created", actorEmail: "jordan@acme.com", actorName: "Jordan Lee", resourceType: "api_key", resourceId: "key_2", metadata: { name: "Development" }, timestamp: "2024-03-08T09:15:00Z" },
-  { id: "4", action: "organization.updated", actorEmail: "admin@acme.com", actorName: "Alex Morgan", resourceType: "organization", resourceId: "org_1", metadata: { field: "name", previous: "Acme", next: "Acme Corp" }, timestamp: "2024-03-07T16:00:00Z" },
-  { id: "5", action: "agent.created", actorEmail: "jordan@acme.com", actorName: "Jordan Lee", resourceType: "agent", resourceId: "agt_2", metadata: { name: "Sales Assistant" }, timestamp: "2024-03-06T10:30:00Z" },
-];
+import { DataTableToolbar } from "@/components/ui/DataTableToolbar";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableEmptyRow,
+} from "@/components/ui/Table";
+import { listTenantAuditLogs } from "@/lib/api/audit";
+import { mapAuditLog } from "@/lib/mappers";
+import { queryKeys } from "@/hooks/queryKeys";
+import { useTenantId } from "@/hooks/useTenantId";
 
 export function AuditLog() {
-  const [entries] = useState<AuditLogEntry[]>(MOCK_ENTRIES);
-  const [actionFilter, setActionFilter] = useState("");
-  const [actorFilter, setActorFilter] = useState("");
+  const tenantId = useTenantId();
+  const [search, setSearch] = useState("");
 
-  const filtered = entries.filter((e) => {
-    if (actionFilter && !e.action.toLowerCase().includes(actionFilter.toLowerCase())) return false;
-    if (actorFilter && !e.actorEmail.toLowerCase().includes(actorFilter.toLowerCase()) && !e.actorName.toLowerCase().includes(actorFilter.toLowerCase())) return false;
-    return true;
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: queryKeys.audit(tenantId ?? "none"),
+    enabled: Boolean(tenantId),
+    queryFn: async () => {
+      const res = await listTenantAuditLogs(tenantId!);
+      return res.items.map(mapAuditLog);
+    },
   });
+
+  const entries = data ?? [];
+  const filtered = useMemo(
+    () =>
+      entries.filter((e) => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return (
+          e.action.toLowerCase().includes(q) ||
+          e.actorEmail.toLowerCase().includes(q) ||
+          e.actorName.toLowerCase().includes(q)
+        );
+      }),
+    [entries, search],
+  );
+
+  if (!tenantId) {
+    return (
+      <ErrorState
+        title="Tenant not configured"
+        description="Link your organization to a tenant to view audit logs."
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader
-        title="Audit log"
-        description="Organization activity and change history"
-      />
+      <PageHeader title="Audit log" description="Organization activity and change history" />
       <Card>
-        <CardHeader
-          title="Activity"
-          description="Filter by action or actor"
-        />
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-4">
-            <Input
-              placeholder="Filter by action..."
-              value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
-              className="max-w-xs"
-            />
-            <Input
-              placeholder="Filter by actor..."
-              value={actorFilter}
-              onChange={(e) => setActorFilter(e.target.value)}
-              className="max-w-xs"
-            />
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[640px]">
-              <thead>
-                <tr className="border-b border-border bg-hover/50 text-left text-sm text-muted-foreground">
-                  <th className="px-4 py-3 font-medium">Time</th>
-                  <th className="px-4 py-3 font-medium">Action</th>
-                  <th className="px-4 py-3 font-medium">Actor</th>
-                  <th className="px-4 py-3 font-medium">Resource</th>
-                  <th className="px-4 py-3 font-medium">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((e) => (
-                  <tr key={e.id} className="border-b border-border/50 text-sm">
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                      {new Date(e.timestamp).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-2xs text-white">{e.action}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-white">{e.actorName}</div>
-                      <div className="text-2xs text-muted-foreground">{e.actorEmail}</div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {e.resourceType}
-                      {e.resourceId && <span className="font-mono text-2xs"> · {e.resourceId}</span>}
-                    </td>
-                    <td className="max-w-[200px] truncate px-4 py-3 text-muted-foreground">
-                      {e.metadata ? JSON.stringify(e.metadata) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <CardHeader title="Activity" description="Search by action or actor" />
+        <CardContent>
+          <DataTableToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search activity…" />
+          {isLoading ? (
+            <div className="space-y-2 py-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 rounded-lg" />
+              ))}
+            </div>
+          ) : isError ? (
+            <ErrorState title="Failed to load audit log" onRetry={() => refetch()} />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Actor</TableHead>
+                  <TableHead>Resource</TableHead>
+                  <TableHead>Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableEmptyRow colSpan={5} message="No matching entries" />
+                ) : (
+                  filtered.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {new Date(e.timestamp).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="font-mono text-2xs">{e.action}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{e.actorName}</div>
+                        <div className="text-2xs text-muted-foreground">{e.actorEmail}</div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {e.resourceType}
+                        {e.resourceId && <span className="font-mono text-2xs"> · {e.resourceId}</span>}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                        {e.metadata ? JSON.stringify(e.metadata) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </>

@@ -158,7 +158,7 @@ export function Organization() {
                   key={m.id}
                   className="border-b border-border/50 transition-colors hover:bg-background-hover/50"
                 >
-                  <td className="px-6 py-4 font-medium text-white">{m.name}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">{m.name}</td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
                     {m.email}
                   </td>
@@ -169,7 +169,7 @@ export function Organization() {
                       <select
                         value={m.role}
                         onChange={(e) => updateMemberRole(m.id, e.target.value as OrgRole)}
-                        className="rounded border border-border bg-background px-2 py-1 text-sm text-white focus:border-primary focus:outline-none"
+                        className="rounded border border-border bg-background px-2 py-1 text-sm text-foreground focus:border-primary focus:outline-none"
                       >
                         {ORG_ROLES.map((r) => (
                           <option key={r.value} value={r.value}>
@@ -220,7 +220,7 @@ export function Organization() {
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value as OrgRole)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
                   >
                     {ORG_ROLES.map((r) => (
                       <option key={r.value} value={r.value}>
@@ -260,7 +260,7 @@ export function Organization() {
                     key={i.id}
                     className="border-b border-border/50"
                   >
-                    <td className="px-6 py-4 font-medium text-white">{i.email}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">{i.email}</td>
                     <td className="px-6 py-4">
                       <Badge>{i.role}</Badge>
                     </td>

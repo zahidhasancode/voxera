@@ -1,0 +1,46 @@
+# VOXERA CODEOWNERS — default reviewers for release branches
+
+* @voxera/platform-team
+
+# Core platform
+/app/core/ @voxera/platform-team
+/app/api/ @voxera/platform-team
+/app/database/ @voxera/platform-team
+/alembic/ @voxera/platform-team
+
+# IAM & Security
+/app/iam/ @voxera/security-team
+/tests/security/ @voxera/security-team
+
+# Cognitive stack
+/app/planner/ @voxera/ai-team
+/app/verifier/ @voxera/ai-team
+/app/workflow/ @voxera/ai-team
+/app/tools/ @voxera/ai-team
+/app/rag/ @voxera/ai-team
+/app/memory/ @voxera/ai-team
+/app/knowledge/ @voxera/ai-team
+
+# Voice
+/app/voice/ @voxera/voice-team
+/app/stt/ @voxera/voice-team
+/app/tts/ @voxera/voice-team
+/app/llm/ @voxera/voice-team
+/app/telephony/ @voxera/voice-team
+
+# Integrations
+/app/integrations/ @voxera/integrations-team
+
+# Frontend
+/dashboard/ @voxera/frontend-team
+/web/ @voxera/frontend-team
+
+# Operations
+/deploy/ @voxera/sre-team
+/.github/ @voxera/sre-team
+/docs/operations/ @voxera/sre-team
+/scripts/ @voxera/sre-team
+
+# Release artifacts
+/CHANGELOG.md @voxera/release-managers
+/docs/release/ @voxera/release-managers

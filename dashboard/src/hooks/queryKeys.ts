@@ -1,0 +1,21 @@
+export const queryKeys = {
+  me: ["auth", "me"] as const,
+  org: (orgId: string) => ["org", orgId] as const,
+  orgUsers: (orgId: string) => ["org", orgId, "users"] as const,
+  agents: (tenantId: string) => ["agents", tenantId] as const,
+  agent: (tenantId: string, agentId: string) => ["agents", tenantId, agentId] as const,
+  knowledge: (tenantId: string) => ["knowledge", tenantId] as const,
+  knowledgeStatus: (tenantId: string) => ["knowledge", tenantId, "status"] as const,
+  tools: (tenantId: string) => ["tools", tenantId] as const,
+  tenants: ["tenants"] as const,
+  audit: (tenantId: string) => ["audit", tenantId] as const,
+  health: ["health"] as const,
+  apiKeys: (orgId: string) => ["apiKeys", orgId] as const,
+  sessions: (userId: string) => ["sessions", userId] as const,
+  dashboard: (tenantId: string) => ["dashboard", tenantId] as const,
+  workflows: (tenantId: string, agentId: string) => ["workflows", tenantId, agentId] as const,
+  integrations: (tenantId: string) => ["integrations", tenantId] as const,
+  integrationCatalog: (tenantId: string) => ["integrations", tenantId, "catalog"] as const,
+  integrationLogs: (tenantId: string, connectionId?: string) =>
+    ["integrations", tenantId, "logs", connectionId ?? "all"] as const,
+};

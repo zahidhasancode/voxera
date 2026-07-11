@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "domain": "banking",
+  "cases": [
+    {
+      "id": "bk-001",
+      "utterance": "What is my checking account balance?",
+      "expected_intent": "general_question",
+      "expected_tools": ["account_balance"],
+      "verifier_should_approve": false,
+      "tags": ["identity", "pii"]
+    },
+    {
+      "id": "bk-002",
+      "utterance": "I need to verify my identity before continuing",
+      "expected_intent": "identity_verification",
+      "expected_tools": [],
+      "verifier_should_approve": true,
+      "tags": ["identity"]
+    },
+    {
+      "id": "bk-003",
+      "utterance": "I have a complaint about a charge on my credit card",
+      "expected_intent": "complaint",
+      "expected_tools": [],
+      "verifier_should_approve": false,
+      "tags": ["complaints", "escalation"]
+    }
+  ]
+}

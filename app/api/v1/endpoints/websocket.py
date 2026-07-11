@@ -5,7 +5,7 @@ import json
 import uuid
 from typing import Optional, Set
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.core.config import settings
 from app.core.connection_manager import ConnectionManager
@@ -14,14 +14,13 @@ from app.conversation.events import UserInterrupted, UserTurnCompleted, UserTurn
 from app.conversation.state import ConversationState
 from app.conversation.turn_manager import TurnManager
 from app.llm.llm_consumer import LLMConsumer
-from app.llm.streaming_engine import MockStreamingLLMEngine
 from app.stt.consumer import STTConsumer
-from app.tts import MockStreamingTTSEngine, TTSConsumer
-from app.stt.engine import MockSTTEngine
 from app.stt.models import TranscriptEvent, TranscriptType
 from app.streaming.audio_queue import AudioFrameQueue
 from app.streaming.dispatcher import StreamingDispatcher
 from app.streaming.metrics import streaming_metrics
+from app.tts import TTSConsumer
+from app.voice.factory import build_llm_engine, build_stt_engine, build_tts_engine
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -31,9 +30,9 @@ manager = ConnectionManager()
 
 
 @router.websocket("/")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(default=None)):
     """Main WebSocket endpoint with streaming audio pipeline."""
-    connected = await manager.connect(websocket)
+    connected = await manager.connect(websocket, token=token)
 
     if not connected:
         await websocket.close()
@@ -41,13 +40,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Initialize conversation state, LLM consumer, and turn manager
     conversation_state = ConversationState()
-    llm_engine = MockStreamingLLMEngine(min_token_delay_ms=20.0, max_token_delay_ms=40.0)
+    llm_engine = build_llm_engine()
     llm_consumer = LLMConsumer(
         engine=llm_engine,
         send_json=websocket.send_json,
         conversation_id=str(conversation_state.conversation_id),
     )
-    tts_engine = MockStreamingTTSEngine()
+    tts_engine = build_tts_engine()
     tts_consumer = TTSConsumer(
         engine=tts_engine,
         send_bytes=websocket.send_bytes,
@@ -182,16 +181,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Initialize STT engine and consumer
     # Configured to emit transcripts more frequently for verification
-    stt_engine = MockSTTEngine(
-        partial_interval=3,  # Emit partial every 3 frames (~60ms)
-        word_probability=0.25,  # Higher probability to generate words
-        silence_threshold=15,  # Finalize after 15 frames of silence
+    stt_engine = build_stt_engine()
+    logger.info(
+        "STT engine initialized",
+        extra_fields={"provider": type(stt_engine).__name__},
     )
-    logger.info("Mock STT engine initialized", extra_fields={
-        "partial_interval": stt_engine.partial_interval,
-        "word_probability": stt_engine.word_probability,
-        "silence_threshold": stt_engine.silence_threshold,
-    })
     stt_consumer = STTConsumer(
         engine=stt_engine,
         transcript_callback=transcript_callback,
@@ -277,6 +271,8 @@ async def websocket_endpoint(websocket: WebSocket):
         # Stop STT consumer and dispatcher
         if stt_consumer:
             await stt_consumer.stop()
+        if stt_engine:
+            await stt_engine.close()
         if dispatcher:
             await dispatcher.stop()
 

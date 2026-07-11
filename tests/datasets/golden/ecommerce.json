@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "domain": "ecommerce",
+  "cases": [
+    {
+      "id": "ec-001",
+      "utterance": "Where is my order #48291?",
+      "expected_intent": "order_status",
+      "expected_tools": ["order_lookup"],
+      "verifier_should_approve": true,
+      "tags": ["orders"]
+    },
+    {
+      "id": "ec-002",
+      "utterance": "I want a refund for the damaged item",
+      "expected_intent": "refund",
+      "expected_tools": ["refund"],
+      "verifier_should_approve": false,
+      "tags": ["refunds"]
+    },
+    {
+      "id": "ec-003",
+      "utterance": "Please cancel subscription for my account immediately",
+      "expected_intent": "cancel_subscription",
+      "expected_tools": ["subscription"],
+      "verifier_should_approve": false,
+      "tags": ["subscription"]
+    },
+    {
+      "id": "ec-004",
+      "utterance": "Hello, thanks for picking up",
+      "expected_intent": "greeting",
+      "expected_tools": [],
+      "verifier_should_approve": true,
+      "tags": ["greeting"]
+    }
+  ]
+}

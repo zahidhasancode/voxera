@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   AreaChart,
   Area,
@@ -7,26 +8,30 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
 import { useVoxera } from "@/store/VoxeraContext";
 
 function LatencyBadge({ ms, label }: { ms: number; label: string }) {
   const color =
-    ms < 200 ? "text-latency-good" : ms < 500 ? "text-latency-warn" : "text-latency-bad";
+    ms < 200 ? "text-success" : ms < 500 ? "text-warning" : "text-destructive";
   return (
     <div className="flex flex-col">
-      <span className={`text-lg font-mono font-semibold ${color}`}>{Math.round(ms)}</span>
-      <span className="text-xs text-voxera-muted">{label}</span>
+      <span className={`text-lg font-mono font-semibold tabular-nums ${color}`}>
+        {Math.round(ms)}
+      </span>
+      <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   );
 }
 
 export function MetricsDashboard() {
-  const {
-    lastLlmMetrics,
-    lastTtsMetrics,
-    llmMetricHistory,
-    ttsMetricHistory,
-  } = useVoxera();
+  const [expanded, setExpanded] = useState(false);
+  const { lastLlmMetrics, lastTtsMetrics, llmMetricHistory, ttsMetricHistory } = useVoxera();
+
+  const hasData = llmMetricHistory.length > 0 || ttsMetricHistory.length > 0;
 
   const llm = lastLlmMetrics ?? {
     time_to_first_token_ms: 0,
@@ -46,93 +51,79 @@ export function MetricsDashboard() {
     ttft: m.time_to_first_token_ms,
     tps: m.tokens_per_second,
   }));
-  const ttsChart = ttsMetricHistory.map((m, i) => ({
-    i,
-    ttfa: m.time_to_first_audio_ms,
-    fps: m.frames_per_second,
-  }));
 
   return (
-    <section className="rounded-xl border border-voxera-border bg-voxera-surface overflow-hidden">
-      <div className="px-4 py-3 border-b border-voxera-border bg-voxera-surface-elevated">
-        <h2 className="text-sm font-semibold text-slate-200">Metrics</h2>
-      </div>
-      <div className="p-4 space-y-6">
-        {/* LLM */}
-        <div>
-          <h3 className="text-xs font-medium text-voxera-muted uppercase tracking-wider mb-2">
-            LLM
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3">
-            <LatencyBadge ms={llm.time_to_first_token_ms} label="TTFT (ms)" />
-            <LatencyBadge ms={llm.total_generation_ms} label="Total (ms)" />
-            <div className="flex flex-col">
-              <span className="text-lg font-mono font-semibold text-white">
-                {llm.tokens_per_second.toFixed(1)}
-              </span>
-              <span className="text-xs text-voxera-muted">tokens/s</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-mono font-semibold text-white">{llm.token_count}</span>
-              <span className="text-xs text-voxera-muted">tokens</span>
-            </div>
-          </div>
-          {llmChart.length > 0 && (
-            <div className="h-[80px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={llmChart}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="i" hide />
-                  <YAxis hide domain={["auto", "auto"]} />
-                  <Tooltip
-                    contentStyle={{ background: "#1e293b", border: "1px solid #334155" }}
-                    formatter={(v: number) => [v?.toFixed(1), ""]}
-                    labelFormatter={(i) => `#${i}`}
-                  />
-                  <Area type="monotone" dataKey="ttft" stroke="#14b8a6" fill="rgba(20, 184, 166, 0.2)" strokeWidth={1.5} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+    <Card>
+      <CardHeader
+        title="Advanced metrics"
+        description="LLM and TTS latency (collapsible)"
+        actions={
+          <Button variant="ghost" size="sm" onClick={() => setExpanded((e) => !e)}>
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        }
+      />
+      {expanded && (
+        <CardContent className="space-y-6">
+          {!hasData ? (
+            <EmptyState
+              title="No metrics yet"
+              description="Start a conversation to see latency data."
+              variant="dashed"
+            />
+          ) : (
+            <>
+              <div>
+                <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">LLM</h3>
+                <div className="mb-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <LatencyBadge ms={llm.time_to_first_token_ms} label="TTFT (ms)" />
+                  <LatencyBadge ms={llm.total_generation_ms} label="Total (ms)" />
+                  <div>
+                    <span className="text-lg font-mono font-semibold text-foreground">
+                      {llm.tokens_per_second.toFixed(1)}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">tokens/s</span>
+                  </div>
+                  <div>
+                    <span className="text-lg font-mono font-semibold text-foreground">{llm.token_count}</span>
+                    <span className="block text-xs text-muted-foreground">tokens</span>
+                  </div>
+                </div>
+                {llmChart.length > 0 && (
+                  <div className="h-40">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={llmChart}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="i" hide />
+                        <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                        <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)" }} />
+                        <Area type="monotone" dataKey="ttft" stroke="var(--primary)" fill="var(--primary-muted)" name="TTFT" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">TTS</h3>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <LatencyBadge ms={tts.time_to_first_audio_ms} label="TTFA (ms)" />
+                  <LatencyBadge ms={tts.total_audio_ms} label="Audio (ms)" />
+                  <div>
+                    <span className="text-lg font-mono font-semibold text-foreground">{tts.frame_count}</span>
+                    <span className="block text-xs text-muted-foreground">frames</span>
+                  </div>
+                  <div>
+                    <span className="text-lg font-mono font-semibold text-foreground">
+                      {tts.frames_per_second.toFixed(1)}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">frames/s</span>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
-        </div>
-
-        {/* TTS */}
-        <div>
-          <h3 className="text-xs font-medium text-voxera-muted uppercase tracking-wider mb-2">
-            TTS
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3">
-            <LatencyBadge ms={tts.time_to_first_audio_ms} label="TTFA (ms)" />
-            <LatencyBadge ms={tts.total_audio_ms} label="Total (ms)" />
-            <div className="flex flex-col">
-              <span className="text-lg font-mono font-semibold text-white">
-                {tts.frames_per_second.toFixed(1)}
-              </span>
-              <span className="text-xs text-voxera-muted">frames/s</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-mono font-semibold text-white">{tts.frame_count}</span>
-              <span className="text-xs text-voxera-muted">frames</span>
-            </div>
-          </div>
-          {ttsChart.length > 0 && (
-            <div className="h-[80px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={ttsChart}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="i" hide />
-                  <YAxis hide domain={["auto", "auto"]} />
-                  <Tooltip
-                    contentStyle={{ background: "#1e293b", border: "1px solid #334155" }}
-                    formatter={(v: number) => [v?.toFixed(1), ""]}
-                  />
-                  <Area type="monotone" dataKey="ttfa" stroke="#22c55e" fill="rgba(34, 197, 94, 0.2)" strokeWidth={1.5} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
+        </CardContent>
+      )}
+    </Card>
   );
 }

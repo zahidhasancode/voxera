@@ -1,22 +1,86 @@
-version: '3.8'
+# VOXERA — local development stack
+# Usage: docker compose up --build
+
+name: voxera-dev
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: voxera
+      POSTGRES_PASSWORD: voxera
+      POSTGRES_DB: voxera
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voxera -d voxera"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
       - "8000:8000"
-    environment:
-      - ENVIRONMENT=production
-      - DEBUG=false
-      - HOST=0.0.0.0
-      - PORT=8000
     env_file:
       - .env
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://voxera:voxera@postgres:5432/voxera
+      KNOWLEDGE_STORAGE_PATH: /data/knowledge
+      RUN_MIGRATIONS: "true"
+      VALIDATE_CONFIG: "false"
     volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - knowledge_data:/data/knowledge
       - ./logs:/app/logs
-    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "python", "/app/scripts/healthcheck.py"]
       interval: 30s
       timeout: 10s
+      start_period: 60s
       retries: 3
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.dashboard
+      args:
+        VITE_API_URL: /api/v1
+    ports:
+      - "5173:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.web
+    ports:
+      - "5174:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  knowledge_data:

@@ -3,10 +3,18 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
-import type { Agent, AgentConfig, AgentVersion } from "@/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Agent, AgentConfig } from "@/types";
+import { useOrg } from "@/contexts/OrgContext";
+import {
+  createAgent,
+  listAgents,
+  updateAgent,
+} from "@/lib/api/agents";
+import { mapAgent } from "@/lib/mappers";
+import { queryKeys } from "@/hooks/queryKeys";
 
 const DEFAULT_CONFIG: AgentConfig = {
   language: "en-US",
@@ -20,183 +28,142 @@ const DEFAULT_CONFIG: AgentConfig = {
     function_calling: true,
   },
   knowledgeBaseIds: [],
-  rateLimits: {
-    requestsPerMinute: 60,
-    concurrentConversations: 10,
-  },
+  rateLimits: { requestsPerMinute: 60, concurrentConversations: 10 },
 };
 
 function defaultConfig(): AgentConfig {
   return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
 
-const INITIAL_AGENTS: Agent[] = [
-  {
-    id: "agt_1",
-    name: "Support Agent",
-    description: "Handles tier-1 support and routing",
-    status: "active",
-    createdAt: "2024-01-15",
-    updatedAt: "2024-03-01",
-    conversationCount: 1240,
-    config: {
-      ...defaultConfig(),
-      language: "en-US",
-      voiceId: "echo",
-      temperature: 0.6,
-      knowledgeBaseIds: ["kb_1", "kb_2"],
-    },
-    versionHistory: [
-      {
-        id: "v1",
-        version: 1,
-        label: "Initial",
-        configSnapshot: defaultConfig(),
-        createdAt: "2024-01-15T10:00:00Z",
-      },
-    ],
-  },
-  {
-    id: "agt_2",
-    name: "Sales Assistant",
-    description: "Qualifies leads and books demos",
-    status: "active",
-    createdAt: "2024-02-01",
-    updatedAt: "2024-02-15",
-    conversationCount: 89,
-    config: { ...defaultConfig(), temperature: 0.8 },
-    versionHistory: [],
-  },
-  {
-    id: "agt_3",
-    name: "Internal FAQ",
-    description: "Draft — not yet deployed",
-    status: "draft",
-    createdAt: "2024-03-10",
-    config: { ...defaultConfig() },
-    versionHistory: [],
-  },
-];
-
 type AgentsContextValue = {
   agents: Agent[];
+  isLoading: boolean;
+  error: Error | null;
   getAgentById: (id: string) => Agent | undefined;
-  createAgent: (agent: Omit<Agent, "id" | "createdAt" | "updatedAt">) => Agent;
+  createAgent: (agent: Omit<Agent, "id" | "createdAt" | "updatedAt">) => Promise<Agent>;
   updateAgent: (
     id: string,
-    patch: Partial<Agent> & { config?: Partial<AgentConfig> }
-  ) => void;
+    patch: Partial<Agent> & { config?: Partial<AgentConfig> },
+  ) => Promise<void>;
   addVersion: (agentId: string, label: string) => void;
-  setAgentStatus: (id: string, status: Agent["status"]) => void;
+  setAgentStatus: (id: string, status: Agent["status"]) => Promise<void>;
   defaultConfig: () => AgentConfig;
 };
 
 const AgentsContext = createContext<AgentsContextValue | null>(null);
 
 export function AgentsProvider({ children }: { children: ReactNode }) {
-  const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
+  const { tenantId } = useOrg();
+  const queryClient = useQueryClient();
 
-  const getAgentById = useCallback(
-    (id: string) => agents.find((a) => a.id === id),
-    [agents]
-  );
+  const agentsQuery = useQuery({
+    queryKey: queryKeys.agents(tenantId ?? "none"),
+    enabled: Boolean(tenantId),
+    queryFn: async () => {
+      const res = await listAgents(tenantId!);
+      return res.items.map(mapAgent);
+    },
+  });
 
-  const createAgent = useCallback(
-    (agent: Omit<Agent, "id" | "createdAt" | "updatedAt">) => {
-      const id = `agt_${Date.now()}`;
-      const now = new Date().toISOString().slice(0, 10);
+  const invalidate = useCallback(() => {
+    if (tenantId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.agents(tenantId) });
+    }
+  }, [queryClient, tenantId]);
+
+  const createMutation = useMutation({
+    mutationFn: async (agent: Omit<Agent, "id" | "createdAt" | "updatedAt">) => {
+      if (!tenantId) throw new Error("Tenant not configured");
       const config = agent.config ?? defaultConfig();
-      const newAgent: Agent = {
-        ...agent,
-        id,
-        createdAt: now,
-        updatedAt: now,
-        config,
-        versionHistory: [
-          {
-            id: `ver_${Date.now()}`,
-            version: 1,
-            label: "Initial",
-            configSnapshot: { ...config },
-            createdAt: new Date().toISOString(),
-          },
-        ],
-      };
-      setAgents((prev) => [...prev, newAgent]);
-      return newAgent;
+      const row = await createAgent(tenantId, {
+        name: agent.name,
+        description: agent.description,
+        system_prompt: agent.description || `You are ${agent.name}, a helpful voice assistant.`,
+        voice: config.voiceId,
+        language: config.language,
+        temperature: config.temperature,
+        status: agent.status,
+      });
+      return mapAgent(row);
     },
-    []
+    onSuccess: invalidate,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Partial<Agent> & { config?: Partial<AgentConfig> };
+    }) => {
+      if (!tenantId) throw new Error("Tenant not configured");
+      const body: Record<string, unknown> = {};
+      if (patch.name) body.name = patch.name;
+      if (patch.description !== undefined) body.description = patch.description;
+      if (patch.status) body.status = patch.status;
+      if (patch.config) {
+        if (patch.config.voiceId) body.voice = patch.config.voiceId;
+        if (patch.config.language) body.language = patch.config.language;
+        if (patch.config.temperature !== undefined) body.temperature = patch.config.temperature;
+      }
+      await updateAgent(tenantId, id, body);
+    },
+    onSuccess: invalidate,
+  });
+
+  const agents = agentsQuery.data ?? [];
+
+  const getAgentById = useCallback((id: string) => agents.find((a) => a.id === id), [agents]);
+
+  const createAgentHandler = useCallback(
+    async (agent: Omit<Agent, "id" | "createdAt" | "updatedAt">) => createMutation.mutateAsync(agent),
+    [createMutation],
   );
 
-  const updateAgent = useCallback(
-    (id: string, patch: Partial<Agent> & { config?: Partial<AgentConfig> }) => {
-      setAgents((prev) =>
-        prev.map((a) => {
-          if (a.id !== id) return a;
-          const config = patch.config
-            ? { ...(a.config ?? defaultConfig()), ...patch.config }
-            : patch.config ?? a.config;
-          return {
-            ...a,
-            ...patch,
-            config,
-            updatedAt: new Date().toISOString().slice(0, 10),
-          };
-        })
-      );
+  const updateAgentHandler = useCallback(
+    async (id: string, patch: Partial<Agent> & { config?: Partial<AgentConfig> }) => {
+      await updateMutation.mutateAsync({ id, patch });
     },
-    []
+    [updateMutation],
   );
 
-  const addVersion = useCallback((agentId: string, label: string) => {
-    setAgents((prev) =>
-      prev.map((a) => {
-        if (a.id !== agentId || !a.config) return a;
-        const history = a.versionHistory ?? [];
-        const version: AgentVersion = {
-          id: `ver_${Date.now()}`,
-          version: history.length + 1,
-          label,
-          configSnapshot: { ...a.config },
-          createdAt: new Date().toISOString(),
-        };
-        return {
-          ...a,
-          versionHistory: [...history, version],
-        };
-      })
-    );
+  const addVersion = useCallback((_agentId: string, _label: string) => {
+    /* version history requires backend versioning API */
   }, []);
 
-  const setAgentStatus = useCallback((id: string, status: Agent["status"]) => {
-    setAgents((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status } : a))
-    );
-  }, []);
+  const setAgentStatus = useCallback(
+    async (id: string, status: Agent["status"]) => {
+      await updateAgentHandler(id, { status });
+    },
+    [updateAgentHandler],
+  );
 
   const value = useMemo<AgentsContextValue>(
     () => ({
       agents,
+      isLoading: agentsQuery.isLoading,
+      error: agentsQuery.error as Error | null,
       getAgentById,
-      createAgent,
-      updateAgent,
+      createAgent: createAgentHandler,
+      updateAgent: updateAgentHandler,
       addVersion,
       setAgentStatus,
       defaultConfig,
     }),
     [
       agents,
+      agentsQuery.isLoading,
+      agentsQuery.error,
       getAgentById,
-      createAgent,
-      updateAgent,
+      createAgentHandler,
+      updateAgentHandler,
       addVersion,
       setAgentStatus,
-    ]
+    ],
   );
 
-  return (
-    <AgentsContext.Provider value={value}>{children}</AgentsContext.Provider>
-  );
+  return <AgentsContext.Provider value={value}>{children}</AgentsContext.Provider>;
 }
 
 export function useAgents() {

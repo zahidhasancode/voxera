@@ -1,0 +1,93 @@
+/* VOXERA shared design tokens – imported by dashboard and web */
+
+:root {
+  --background: #fafbfc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --hover: #f1f5f9;
+
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --primary-hover: #0f766e;
+  --primary-muted: #ccfbf1;
+  --primary-muted-foreground: #0f766e;
+
+  --accent: #6366f1;
+  --accent-foreground: #ffffff;
+  --accent-muted: #e0e7ff;
+  --accent-muted-foreground: #4338ca;
+
+  --success: #059669;
+  --success-muted: #d1fae5;
+  --warning: #d97706;
+  --warning-muted: #fef3c7;
+  --destructive: #dc2626;
+  --destructive-muted: #fee2e2;
+  --info: #0284c7;
+  --info-muted: #e0f2fe;
+
+  --background-subtle: #f0fdfa;
+
+  --shadow-soft: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --shadow-soft-lg: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 8px 24px -4px rgba(0, 0, 0, 0.06);
+  --shadow-soft-xl: 0 8px 24px -4px rgba(0, 0, 0, 0.1), 0 16px 48px -8px rgba(0, 0, 0, 0.08);
+  --shadow-inner: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  --space-page: 1.5rem;
+  --space-section: 2rem;
+  --space-card: 1.5rem;
+  --space-element: 0.75rem;
+  --space-tight: 0.5rem;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --border: #475569;
+  --hover: #334155;
+
+  --primary: #2dd4bf;
+  --primary-foreground: #0f172a;
+  --primary-hover: #5eead4;
+  --primary-muted: #134e4a;
+  --primary-muted-foreground: #5eead4;
+
+  --accent: #818cf8;
+  --accent-foreground: #0f172a;
+  --accent-muted: #3730a3;
+  --accent-muted-foreground: #a5b4fc;
+
+  --success: #34d399;
+  --success-muted: #064e3b;
+  --warning: #fbbf24;
+  --warning-muted: #78350f;
+  --destructive: #f87171;
+  --destructive-muted: #7f1d1d;
+  --info: #38bdf8;
+  --info-muted: #0c4a6e;
+
+  --background-subtle: #0f2d2a;
+
+  --shadow-soft: 0 1px 3px 0 rgba(0, 0, 0, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
+  --shadow-soft-lg: 0 4px 12px -2px rgba(0, 0, 0, 0.35), 0 8px 24px -4px rgba(0, 0, 0, 0.25);
+  --shadow-soft-xl: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 16px 48px -8px rgba(0, 0, 0, 0.3);
+  --shadow-inner: inset 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+
+  color-scheme: dark;
+}
+
+html.light,
+.light {
+  color-scheme: light;
+}

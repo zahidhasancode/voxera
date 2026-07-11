@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: VOXERA
+    orgId: 1
+    folder: VOXERA
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

@@ -202,6 +202,7 @@ async def test_consumer_start_stop(pipeline):
     pipeline.add_consumer(consumer1)
     pipeline.add_consumer(consumer2)
 
+    await pipeline.stop()
     await pipeline.start()
 
     # Send some chunks
@@ -308,6 +309,7 @@ async def test_chunk_sequence_numbers(pipeline):
     seq_consumer = SeqCheckConsumer(name="seq-check")
     pipeline.add_consumer(seq_consumer)
 
+    await pipeline.stop()
     await pipeline.start()
 
     # Send chunks

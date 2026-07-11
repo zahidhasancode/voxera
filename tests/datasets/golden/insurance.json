@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "domain": "insurance",
+  "cases": [
+    {
+      "id": "in-001",
+      "utterance": "How do I file a claim for water damage?",
+      "expected_intent": "general_question",
+      "expected_tools": ["claims"],
+      "verifier_should_approve": false,
+      "tags": ["claims"]
+    },
+    {
+      "id": "in-002",
+      "utterance": "What does my policy cover for rental cars?",
+      "expected_intent": "general_question",
+      "expected_tools": ["policy_lookup"],
+      "verifier_should_approve": true,
+      "tags": ["policy"]
+    }
+  ]
+}

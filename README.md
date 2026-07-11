@@ -1,6 +1,8 @@
 # VOXERA
 
-**Real-time voice AI platform** — streaming STT, LLM, and TTS over WebSockets with turn-taking, barge-in, and sub-400ms perceived latency.
+**Enterprise voice agent platform** — real-time streaming voice AI with multi-tenant enterprise stack: IAM, Planner, Verifier, Workflow, Knowledge, Memory, Integrations, and production Kubernetes deployment.
+
+**Current version:** `v1.0.0-RC1` — see [Release Notes](docs/release/v1.0.0-RC1.md) and [Production Readiness Report](docs/release/RC1-production-readiness-report.md).
 
 ---
 
@@ -101,7 +103,7 @@ The result is a platform suitable for **live demos, voice agents, and production
 
 | Layer | Technologies |
 |-------|--------------|
-| **Backend** | Python 3.11, FastAPI, uvicorn, WebSockets, Pydantic, pydantic-settings |
+| **Backend** | Python 3.11, FastAPI, uvicorn, WebSockets, Pydantic, pydantic-settings, SQLAlchemy 2 (async), Alembic, PostgreSQL |
 | **Frontend** | Vite, React 18, TypeScript, TailwindCSS, Recharts, Web Audio API |
 | **Transport** | Native WebSocket (no Socket.IO); JSON (events) + binary (PCM16) |
 | **Audio** | PCM16 mono, 16kHz, 20ms frames (640 bytes) |
@@ -116,8 +118,67 @@ VOXERA/
 │   ├── api/v1/
 │   │   ├── endpoints/
 │   │   │   ├── health.py         # /api/v1/health (streaming metrics)
-│   │   │   └── websocket.py      # WebSocket /api/v1/
+│   │   │   ├── websocket.py      # WebSocket /api/v1/ (voice — unchanged)
+│   │   │   ├── tenants.py        # Enterprise REST (Sprint 1)
+│   │   │   ├── agents.py
+│   │   │   └── ...
+│   │   ├── dependencies.py       # FastAPI DI for enterprise services
+│   │   ├── enterprise_router.py
 │   │   └── router.py
+│   ├── tenants/                  # Domain: schemas, repository/service ports
+│   ├── agents/
+│   ├── configuration/
+│   ├── knowledge/                # Ingestion pipeline + vector/embed ports
+│   ├── rag/                      # Enterprise retrieval engine
+│   │   ├── retriever/            # EnterpriseRetriever, normalizer, language
+│   │   ├── ranking/              # RankingStrategy interfaces
+│   │   ├── context/              # ContextBuilder
+│   │   ├── prompt_builder/       # EnterprisePromptBuilder
+│   │   ├── cache/                # RetrievalCache abstraction
+│   │   ├── validators/           # Security validation gate
+│   │   └── services/             # EnterpriseRAGService orchestrator
+│   ├── memory/                   # Enterprise memory system
+│   │   ├── manager/              # MemoryManager port
+│   │   ├── summarizer/           # Structured conversation summarizer
+│   │   ├── compression/          # Token budget compression
+│   │   ├── cache/                # MemoryCache (Redis-ready)
+│   │   ├── validators/           # Tenant isolation gate
+│   │   └── state/                # PlannerContextAssembler
+│   ├── tools/                    # Enterprise tool execution framework
+│   │   ├── registry/             # ToolRegistry + plugin registration
+│   │   ├── adapters/             # Built-in tool plugins (12+)
+│   │   ├── execution/            # Retry, timeout, circuit breaker
+│   │   ├── validators/           # Permissions, guardrails, JSON Schema
+│   │   ├── audit/                # Immutable audit trail
+│   │   └── api/                  # Execute/test/history/metrics REST
+│   ├── planner/                  # Enterprise planner agent
+│   │   ├── reasoning/            # IntentEngine, ReasoningLoop
+│   │   ├── planning/             # Execution plan generation
+│   │   ├── policies/             # Tenant policy enforcement
+│   │   ├── prompts/              # Template prompt provider
+│   │   ├── models/               # PlannerModel implementations
+│   │   └── api/                  # Plan/history/metrics REST
+│   ├── verifier/                 # Enterprise verifier agent (safety gate)
+│   │   ├── validators/           # JSON, tool, identity, hallucination pipeline
+│   │   ├── policies/             # Tenant policy, business rules, risk engine
+│   │   ├── compliance/           # GDPR, HIPAA, PCI-DSS, SOC2, ISO27001
+│   │   ├── audit/                # Immutable verification audit trail
+│   │   └── api/                  # Verify/history/metrics REST
+│   ├── workflow/                 # Enterprise workflow & policy engine
+│   │   ├── engine/               # WorkflowEngine, event bus, plugins
+│   │   ├── policy/               # Tenant business policies
+│   │   ├── rules/                # IF/THEN/ELSE rule engine
+│   │   ├── approvals/            # Approval chains
+│   │   ├── escalation/           # Escalation with context preservation
+│   │   ├── routing/              # Department, VIP, emergency routing
+│   │   ├── scheduler/            # Business hours, holidays, timezone
+│   │   ├── validators/           # Definition & access validation
+│   │   ├── metrics/              # Observability collector
+│   │   ├── audit/                # Workflow audit trail
+│   │   └── api/                  # Start/test/validate/approve REST
+│   ├── audit/
+│   ├── infrastructure/         # SQLAlchemy adapters + service impls
+│   ├── database/                 # ORM models, async session, Alembic
 │   ├── conversation/            # Turn-taking core
 │   │   ├── state.py              # ConversationState (user/system turn, turn_count)
 │   │   ├── turn_manager.py       # process_transcript_event → UserTurn* / UserInterrupted
@@ -155,6 +216,17 @@ VOXERA/
 │   │   └── types/                # Backend JSON event types
 │   └── ...
 ├── docs/                         # Architecture, system design, product, demo
+│   └── architecture/
+│       ├── sprint1-multitenancy.md
+│       ├── knowledge-ingestion.md
+│       ├── enterprise-retrieval-engine.md
+│       ├── enterprise-memory-system.md
+│       ├── enterprise-tool-framework.md
+│       ├── enterprise-planner-agent.md
+│       ├── enterprise-verifier-agent.md
+│       ├── enterprise-workflow-engine.md
+│       ├── enterprise-admin-dashboard.md
+│       └── enterprise-iam.md
 ├── tests/
 ├── requirements.txt
 ├── pyproject.toml
@@ -186,6 +258,154 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - Docs: `http://localhost:8000/docs` (when `ENVIRONMENT=development`)
 - Health: `http://localhost:8000/api/v1/health`
 
+### Enterprise database (optional)
+
+Voice streaming works without a database. To enable multi-tenant REST APIs:
+
+```bash
+# PostgreSQL (Docker example)
+docker run -d --name voxera-pg \
+  -e POSTGRES_USER=voxera -e POSTGRES_PASSWORD=voxera -e POSTGRES_DB=voxera \
+  -p 5432:5432 postgres:16
+
+# In .env
+DATABASE_URL=postgresql+asyncpg://voxera:voxera@localhost:5432/voxera
+
+alembic upgrade head
+```
+
+See [docs/architecture/sprint1-multitenancy.md](docs/architecture/sprint1-multitenancy.md) for the full architecture.
+
+### Knowledge ingestion (Sprint 2)
+
+Upload tenant documents for agent RAG retrieval:
+
+```bash
+# Upload a text/markdown file
+curl -X POST "http://localhost:8000/api/v1/tenants/{tenant_id}/knowledge/upload" \
+  -F "title=Product FAQ" \
+  -F "source_type=txt" \
+  -F "file=@faq.txt"
+
+# Check processing status
+curl "http://localhost:8000/api/v1/tenants/{tenant_id}/knowledge/status"
+```
+
+See [docs/architecture/knowledge-platform.md](docs/architecture/knowledge-platform.md) for production provider configuration, background jobs, parsers, and operations.
+
+### Enterprise retrieval engine
+
+Grounded AI responses using tenant-isolated RAG:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/tenants/{tenant_id}/agents/{agent_id}/rag/query" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is your refund policy?", "include_prompt": true, "top_k": 5}'
+```
+
+See [docs/architecture/enterprise-retrieval-engine.md](docs/architecture/enterprise-retrieval-engine.md) for the full retrieval architecture, security model, and sequence diagrams.
+
+### Enterprise memory system
+
+Multi-turn conversation memory with working state, tool results, and structured summaries:
+
+```bash
+# Get planner context for a session
+curl "http://localhost:8000/api/v1/tenants/{tenant_id}/agents/{agent_id}/memory/context?conversation_id={id}"
+```
+
+See [docs/architecture/enterprise-memory-system.md](docs/architecture/enterprise-memory-system.md) for architecture, session lifecycle, and developer guide.
+
+### Enterprise tool execution framework
+
+Validated, auditable business operations (appointments, CRM, tickets, transfers):
+
+```bash
+# Execute a tool
+curl -X POST "http://localhost:8000/api/v1/tenants/{tenant_id}/agents/{agent_id}/tools/execute" \
+  -H "Content-Type: application/json" \
+  -d '{"tool_slug":"appointment","arguments":{"action":"book","customer_name":"Jane"}}'
+```
+
+See [docs/architecture/enterprise-tool-framework.md](docs/architecture/enterprise-tool-framework.md) for plugin guide, security guardrails, and sequence diagrams.
+
+### Enterprise planner agent
+
+Decision-making brain that produces structured execution plans:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/tenants/{tenant_id}/agents/{agent_id}/planner/plan" \
+  -H "Content-Type: application/json" \
+  -d '{"conversation_id":"{id}","user_message":"I want to book an appointment"}'
+```
+
+See [docs/architecture/enterprise-planner-agent.md](docs/architecture/enterprise-planner-agent.md) for reasoning flow, planning lifecycle, and developer guide.
+
+### Enterprise verifier agent
+
+Mandatory safety gate — validates every planner decision before execution:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/tenants/{tenant_id}/agents/{agent_id}/verifier/verify" \
+  -H "Content-Type: application/json" \
+  -d '{"conversation_id":"{id}","planner_output":{...}}'
+```
+
+See [docs/architecture/enterprise-verifier-agent.md](docs/architecture/enterprise-verifier-agent.md) for validation pipeline, risk engine, and compliance layer.
+
+### Enterprise workflow & policy engine
+
+Configuration-driven business rules layer — policies, approvals, escalation, routing, and business hours per tenant:
+
+```bash
+# Start workflow after Planner + Verifier
+curl -X POST "http://localhost:8000/api/v1/tenants/{tenant_id}/agents/{agent_id}/workflow" \
+  -H "Content-Type: application/json" \
+  -d '{"conversation_id":"{id}","workflow_slug":"default","context":{"refund_amount":750},"planner_output":{...},"verifier_result":{...}}'
+
+# Dry-run rules against context
+curl -X POST "http://localhost:8000/api/v1/tenants/{tenant_id}/agents/{agent_id}/workflow/test" \
+  -H "Content-Type: application/json" \
+  -d '{"context":{"refund_amount":750},"definition":{"rules":[...]}}'
+```
+
+See [docs/architecture/enterprise-workflow-engine.md](docs/architecture/enterprise-workflow-engine.md) for architecture, state diagrams, business rule guide, and plugin SDK.
+
+### Enterprise admin dashboard
+
+Production operating console for monitoring agents, live calls, workflows, tools, tenants, and analytics:
+
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+
+- Console: `http://localhost:5174`
+- Live call center with WebSocket updates (falls back to simulation in dev)
+- Full module coverage: agents, knowledge, workflows, tool registry, tenants, users, billing, audit
+
+See [docs/architecture/enterprise-admin-dashboard.md](docs/architecture/enterprise-admin-dashboard.md) for architecture, component library, and state management guide.
+
+### Enterprise IAM
+
+Identity & access management — organizations, RBAC, API keys, sessions, security policies, audit:
+
+```bash
+# Login
+curl -X POST "http://localhost:8000/api/v1/iam/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@acme.com","password":"SecurePassword123!","organization_id":"{org_id}"}'
+
+# Create API key (requires X-Actor-Id header for RBAC)
+curl -X POST "http://localhost:8000/api/v1/iam/organizations/{org_id}/api-keys" \
+  -H "Content-Type: application/json" \
+  -H "X-Actor-Id: {user_id}" \
+  -d '{"name":"Production Integration"}'
+```
+
+See [docs/architecture/enterprise-iam.md](docs/architecture/enterprise-iam.md) for authentication flow, RBAC diagrams, and developer guide.
+
 ### Frontend
 
 ```bash
@@ -211,7 +431,7 @@ VITE_WS_URL=ws://localhost:8000/api/v1/ npm run dev
 
 2. **Dispatcher:** `StreamingDispatcher` runs a loop every 20ms: dequeue one frame, pass to `frame_callback`, and fan out to `STTConsumer.process_frame` via a fire-and-forget task so the dispatcher never waits on STT.
 
-3. **STT:** `STTConsumer` pushes frames into `MockSTTEngine` (or a real engine). The engine emits `TranscriptEvent` (partial or final). Each event is sent to the client as JSON and to `TurnManager.process_transcript_event`.
+3. **STT:** `STTConsumer` pushes frames into the configured STT provider (Deepgram by default). The engine emits `TranscriptEvent` (partial or final). Each event is sent to the client as JSON and to `TurnManager.process_transcript_event`.
 
 4. **Turn-taking:** On **partial** while `is_system_speaking` → barge-in: `UserInterrupted` → cancel LLM and TTS. On **partial** with `!is_user_speaking` → `UserTurnStarted` → cancel any in-flight LLM. On **final** with `is_user_speaking` → `UserTurnCompleted` → start LLM generation.
 
@@ -314,6 +534,31 @@ See **docs/demo.md** for a live demo script and investor-friendly talking points
 
 - **License:** Proprietary — VOXERA.  
 - **Contributions:** Internal only unless otherwise agreed. For external contributions, open an issue to discuss scope and licensing.
+
+---
+
+## Production Deployment
+
+VOXERA includes production-ready Docker, Compose, Kubernetes (Helm), CI/CD, and observability stacks.
+
+```bash
+# Production stack (Postgres, Redis, API, frontends, nginx)
+cp deploy/env/.env.production.example .env.production
+docker compose -f docker-compose.prod.yml up -d --build
+
+# Kubernetes
+helm upgrade --install voxera deploy/helm/voxera \
+  -f deploy/helm/voxera/values-production.yaml \
+  --namespace voxera-prod --create-namespace
+```
+
+| Component | Location |
+|-----------|----------|
+| Deployment guide | [docs/operations/deployment-guide.md](docs/operations/deployment-guide.md) |
+| Kubernetes / Helm | [docs/operations/kubernetes-guide.md](docs/operations/kubernetes-guide.md) |
+| CI/CD | [.github/workflows/](.github/workflows/) |
+| Monitoring | `deploy/monitoring/` (Prometheus, Grafana, OTel) |
+| Metrics endpoint | `GET /api/v1/metrics` (Prometheus format) |
 
 ---
 

@@ -1,0 +1,12 @@
+apiVersion: v2
+name: voxera
+description: VOXERA Enterprise Voice Agent Platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - voice-ai
+  - enterprise
+  - fastapi
+maintainers:
+  - name: VOXERA Platform Team

@@ -16,7 +16,6 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useKnowledgeBase } from "@/contexts/KnowledgeBaseContext";
 import type {
   EmbeddingStatus,
-  KnowledgeChunk,
   KnowledgeDocument,
 } from "@/types";
 
@@ -89,7 +88,7 @@ function ChunkPreviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h3 className="font-semibold text-white">
+          <h3 className="font-semibold text-foreground">
             Chunk preview — {doc.name}
           </h3>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -110,7 +109,7 @@ function ChunkPreviewModal({
                       <span>· {chunk.tokenCount} tokens</span>
                     )}
                   </div>
-                  <p className="text-sm text-white whitespace-pre-wrap">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
                     {chunk.text}
                   </p>
                 </li>
@@ -143,25 +142,11 @@ export function KnowledgeBase() {
     addDocument,
     deleteDocument,
     reindexDocument,
-    updateDocumentProgress,
     searchTest,
   } = useKnowledgeBase();
 
-  const runIndexingSimulation = useCallback(
-    (docId: string, chunkCount: number, chunks: KnowledgeChunk[]) => {
-      let progress = 0;
-      const step = 100 / 8;
-      const interval = setInterval(() => {
-        progress = Math.min(progress + step, 100);
-        updateDocumentProgress(docId, progress, progress >= 100 ? chunkCount : undefined, progress >= 100 ? chunks : undefined);
-        if (progress >= 100) clearInterval(interval);
-      }, 250);
-    },
-    [updateDocumentProgress]
-  );
-
   const handleFileSelect = useCallback(
-    (files: FileList | null) => {
+    async (files: FileList | null) => {
       if (!files?.length) return;
       const file = files[0];
       const ext = file.name.split(".").pop()?.toLowerCase();
@@ -174,41 +159,29 @@ export function KnowledgeBase() {
         return;
       }
       setUploading(true);
-      setUploadProgress(0);
-      const progressInterval = setInterval(() => {
-        setUploadProgress((p) => {
-          if (p >= 100) {
-            clearInterval(progressInterval);
-            const chunkCount = Math.max(1, Math.floor(file.size / 5000));
-            const chunks = Array.from({ length: chunkCount }, (_, i) => ({
-              id: `new_chunk_${i + 1}`,
-              documentId: "",
-              index: i + 1,
-              text: `Chunk ${i + 1} from ${file.name}. Sample extracted text for embedding.`,
-              tokenCount: 35 + i * 3,
-            }));
-            const added = addDocument({
-              name: file.name,
-              fileType: ext as "pdf" | "txt",
-              size: file.size,
-              embeddingStatus: "indexing",
-              indexingProgress: 0,
-              chunkCount: 0,
-              chunks: [],
-            });
-            chunks.forEach((c) => {
-              c.documentId = added.id;
-            });
-            runIndexingSimulation(added.id, chunkCount, chunks);
-            setUploading(false);
-            setUploadProgress(0);
-            return 100;
-          }
-          return p + 10;
-        });
-      }, 120);
+      setUploadProgress(25);
+      try {
+        await addDocument(
+          {
+            name: file.name,
+            fileType: ext as "pdf" | "txt",
+            size: file.size,
+            embeddingStatus: "indexing",
+            indexingProgress: 0,
+            chunkCount: 0,
+            chunks: [],
+          },
+          file,
+        );
+        setUploadProgress(100);
+      } catch {
+        alert("Upload failed. Check your connection and try again.");
+      } finally {
+        setUploading(false);
+        setUploadProgress(0);
+      }
     },
-    [addDocument, runIndexingSimulation]
+    [addDocument],
   );
 
   const onDrop = useCallback(
@@ -278,7 +251,7 @@ export function KnowledgeBase() {
                 {uploading ? (
                   <>
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    <p className="mt-3 text-sm font-medium text-white">
+                    <p className="mt-3 text-sm font-medium text-foreground">
                       Uploading…
                     </p>
                     <div className="mt-2 h-1.5 w-48 overflow-hidden rounded-full bg-border">
@@ -294,7 +267,7 @@ export function KnowledgeBase() {
                 ) : (
                   <>
                     <Upload className="h-10 w-10 text-muted-foreground" />
-                    <p className="mt-3 text-sm font-medium text-white">
+                    <p className="mt-3 text-sm font-medium text-foreground">
                       Drop files here or click to upload
                     </p>
                     <p className="mt-1 text-2xs text-muted-foreground">
@@ -333,7 +306,7 @@ export function KnowledgeBase() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium text-white">
+                          <span className="font-medium text-foreground">
                             {doc.name}
                           </span>
                         </div>
@@ -457,7 +430,7 @@ export function KnowledgeBase() {
                           <div className="mb-1 flex items-center gap-2 text-2xs text-muted-foreground">
                             <span>Score: {(r.score * 100).toFixed(0)}%</span>
                           </div>
-                          <p className="text-white line-clamp-2">{r.snippet}</p>
+                          <p className="text-foreground line-clamp-2">{r.snippet}</p>
                         </li>
                       ))}
                     </ul>

@@ -155,9 +155,9 @@ export function Developer() {
   const [webhookDesc, setWebhookDesc] = useState("");
   const [webhookEvents, setWebhookEvents] = useState<string[]>([]);
 
-  const handleCreateKey = useCallback(() => {
+  const handleCreateKey = useCallback(async () => {
     if (!newKeyName.trim()) return;
-    const key = createKey(newKeyName.trim(), newKeyLive);
+    const key = await createKey(newKeyName.trim(), newKeyLive);
     setCreatedKey(key);
     setNewKeyName("");
     setNewKeyLive(false);
@@ -165,13 +165,13 @@ export function Developer() {
   }, [newKeyName, newKeyLive, createKey]);
 
   const handleRegenerate = useCallback(
-    (id: string) => {
+    async (id: string) => {
       setRegeneratingId(id);
-      const key = regenerateKey(id);
+      const key = await regenerateKey(id);
       setRegeneratedKey(key ?? null);
       setRegeneratingId(null);
     },
-    [regenerateKey]
+    [regenerateKey],
   );
 
   const handleAddWebhook = useCallback(() => {

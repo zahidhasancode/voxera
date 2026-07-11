@@ -65,7 +65,11 @@ poetry.lock
 
 # Node / Dashboard
 node_modules/
+web/node_modules/
 dashboard/node_modules/
 *.tsbuildinfo
 dashboard/dist/
 .cursor/
+
+# Knowledge uploads (local dev storage)
+data/knowledge/

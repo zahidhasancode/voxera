@@ -1,0 +1,96 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "HTTP Requests",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(voxera_http_requests_total[5m])",
+          "legendFormat": "requests/s"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "title": "API Latency P95",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "voxera_http_latency_p95_ms",
+          "legendFormat": "p95 ms"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "title": "Voice Latency",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "voxera_voice_latency_ms",
+          "legendFormat": "voice ms"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "title": "Voice Queue Depth",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "voxera_voice_queue_depth",
+          "legendFormat": "queue"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 5,
+      "title": "HTTP Errors",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(voxera_http_errors_total[5m])",
+          "legendFormat": "errors/s"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 6,
+      "title": "Rate Limits",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(voxera_rate_limits_total[5m])",
+          "legendFormat": "rate limited/s"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["voxera", "platform"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "VOXERA Platform Overview",
+  "uid": "voxera-overview",
+  "version": 1
+}

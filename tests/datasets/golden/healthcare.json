@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "domain": "healthcare",
+  "cases": [
+    {
+      "id": "hc-001",
+      "utterance": "What is covered under my prescription plan?",
+      "expected_intent": "general_question",
+      "expected_tools": [],
+      "verifier_should_approve": true,
+      "tags": ["prescription", "support"]
+    },
+    {
+      "id": "hc-002",
+      "utterance": "I want to book an appointment with Dr. Smith next Tuesday",
+      "expected_intent": "appointment",
+      "expected_tools": ["appointment"],
+      "verifier_should_approve": true,
+      "tags": ["appointments"]
+    },
+    {
+      "id": "hc-003",
+      "utterance": "This is an emergency, I cannot breathe",
+      "expected_intent": "emergency",
+      "expected_tools": [],
+      "verifier_should_approve": false,
+      "tags": ["escalation", "emergency"]
+    },
+    {
+      "id": "hc-004",
+      "utterance": "Please verify my identity with date of birth and member ID",
+      "expected_intent": "identity_verification",
+      "expected_tools": [],
+      "verifier_should_approve": true,
+      "tags": ["identity"]
+    }
+  ]
+}

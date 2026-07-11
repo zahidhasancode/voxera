@@ -1,0 +1,30 @@
+global:
+  environment: staging
+
+api:
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+
+ingress:
+  hosts:
+    - host: api.staging.voxera.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api
+    - host: app.staging.voxera.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: dashboard
+  tls:
+    - secretName: voxera-staging-tls
+      hosts:
+        - api.staging.voxera.example.com
+        - app.staging.voxera.example.com
+
+featureFlags:
+  voiceRequireProviders: false

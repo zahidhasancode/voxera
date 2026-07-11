@@ -48,6 +48,11 @@ export function SkeletonRow({ cols = 4 }: { cols?: number }) {
   );
 }
 
+/** Chart placeholder */
+export function SkeletonChart({ className = "h-64" }: { className?: string }) {
+  return <Skeleton className={`w-full rounded-xl ${className}`} />;
+}
+
 /** Card placeholder (title + content blocks) */
 export function SkeletonCard() {
   return (

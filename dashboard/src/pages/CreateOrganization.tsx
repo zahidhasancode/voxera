@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useOrg } from "@/contexts/OrgContext";
+import { createTenant } from "@/lib/api/tenants";
 
 export function CreateOrganization() {
   const [name, setName] = useState("");
@@ -31,7 +32,11 @@ export function CreateOrganization() {
     if (!name.trim()) return;
     setIsSubmitting(true);
     try {
-      await createOrganization(name.trim(), slug.trim() || deriveSlug(name));
+      const tenant = await createTenant({
+        name: name.trim(),
+        slug: slug.trim() || deriveSlug(name),
+      });
+      await createOrganization(name.trim(), slug.trim() || deriveSlug(name), tenant.id);
       navigate("/app/organization", { replace: true });
     } finally {
       setIsSubmitting(false);

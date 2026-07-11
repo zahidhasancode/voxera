@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAgents } from "@/contexts/AgentsContext";
+import { useKnowledgeBase } from "@/contexts/KnowledgeBaseContext";
 import type {
   AgentConfig,
   AgentToolId,
@@ -40,12 +41,6 @@ const TOOL_LABELS: Record<AgentToolId, string> = {
   function_calling: "Function calling",
 };
 
-const MOCK_KNOWLEDGE_BASES = [
-  { id: "kb_1", name: "Returns policy" },
-  { id: "kb_2", name: "Shipping options" },
-  { id: "kb_3", name: "Enterprise SSO" },
-];
-
 function formatVersionDate(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, {
@@ -59,6 +54,7 @@ export function AgentEdit() {
   const navigate = useNavigate();
   const { getAgentById, createAgent, updateAgent, addVersion, defaultConfig } =
     useAgents();
+  const { documents: knowledgeDocuments } = useKnowledgeBase();
   const isNew = id === "new" || !id;
 
   const [name, setName] = useState("");
@@ -110,7 +106,7 @@ export function AgentEdit() {
     setSaving(true);
     try {
       if (isNew) {
-        const created = createAgent({
+        const created = await createAgent({
           name: name.trim(),
           description: description.trim(),
           status: enabled ? "active" : "draft",
@@ -118,7 +114,7 @@ export function AgentEdit() {
         });
         navigate(`/app/agents/${created.id}`, { replace: true });
       } else {
-        updateAgent(id!, {
+        await updateAgent(id!, {
           name: name.trim(),
           description: description.trim(),
           status: enabled ? "active" : "draft",
@@ -210,7 +206,7 @@ export function AgentEdit() {
                   Description
                 </label>
                 <textarea
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-white placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   placeholder="Short description of what this agent does"
                   rows={2}
                   value={description}
@@ -261,7 +257,7 @@ export function AgentEdit() {
                   onChange={(e) =>
                     setConfig((c) => ({ ...c, language: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   {LANGUAGES.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -279,7 +275,7 @@ export function AgentEdit() {
                   onChange={(e) =>
                     setConfig((c) => ({ ...c, voiceId: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   {VOICES.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -331,7 +327,7 @@ export function AgentEdit() {
                       onChange={(e) => setTool(tool, e.target.checked)}
                       className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-white">
+                    <span className="text-sm text-foreground">
                       {TOOL_LABELS[tool]}
                     </span>
                   </label>
@@ -347,7 +343,10 @@ export function AgentEdit() {
             />
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                {MOCK_KNOWLEDGE_BASES.map((kb) => (
+                {knowledgeDocuments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No knowledge sources uploaded yet.</p>
+                ) : (
+                  knowledgeDocuments.map((kb) => (
                   <label
                     key={kb.id}
                     className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 transition-colors hover:bg-border/20"
@@ -358,9 +357,10 @@ export function AgentEdit() {
                       onChange={() => toggleKnowledgeBase(kb.id)}
                       className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary"
                     />
-                    <span className="text-sm text-white">{kb.name}</span>
+                    <span className="text-sm text-foreground">{kb.name}</span>
                   </label>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -423,7 +423,7 @@ export function AgentEdit() {
                         className="flex items-center justify-between rounded-lg border border-border bg-background-hover px-3 py-2 text-sm"
                       >
                         <div>
-                          <span className="font-medium text-white">
+                          <span className="font-medium text-foreground">
                             v{v.version}
                           </span>
                           <span className="ml-2 text-muted-foreground">

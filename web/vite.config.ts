@@ -8,7 +8,8 @@ export default defineConfig({
     alias: { "@": path.resolve(process.cwd(), "src") },
   },
   server: {
-    port: 5173,
+    port: 5174,
+    strictPort: false,
     proxy: {
       "/api": {
         target: "http://localhost:8000",

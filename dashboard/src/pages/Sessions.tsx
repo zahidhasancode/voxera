@@ -40,7 +40,7 @@ export function Sessions() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-white">{s.device}</p>
+                    <p className="font-medium text-foreground">{s.device}</p>
                     {s.location && (
                       <p className="text-sm text-muted-foreground">{s.location}</p>
                     )}

@@ -1,0 +1,170 @@
+# VOXERA — production stack
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+# Requires: .env.production (copy from deploy/env/.env.production.example)
+
+name: voxera-prod
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-voxera}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:-voxera}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-voxera} -d ${POSTGRES_DB:-voxera}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${VOXERA_API_IMAGE:-voxera-api:latest}
+    restart: unless-stopped
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-voxera}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-voxera}
+      KNOWLEDGE_STORAGE_PATH: /data/knowledge
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      VALIDATE_CONFIG: "true"
+      WORKERS: ${API_WORKERS:-4}
+    volumes:
+      - knowledge_data:/data/knowledge
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/app/scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+    networks:
+      - internal
+
+  worker:
+    image: ${VOXERA_API_IMAGE:-voxera-api:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env.production
+        required: false
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-voxera}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-voxera}
+      KNOWLEDGE_STORAGE_PATH: /data/knowledge
+      RUN_MIGRATIONS: "false"
+      VALIDATE_CONFIG: "true"
+      WORKERS: ${WORKER_PROCESSES:-2}
+      VOXERA_SERVICE_ROLE: worker
+    volumes:
+      - knowledge_data:/data/knowledge
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/app/scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    networks:
+      - internal
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.dashboard
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+        VITE_WS_URL: ${VITE_WS_URL:-}
+    image: ${VOXERA_DASHBOARD_IMAGE:-voxera-dashboard:latest}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.web
+      args:
+        VITE_WS_URL: ${VITE_WS_URL:-}
+    image: ${VOXERA_WEB_IMAGE:-voxera-web:latest}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/docker/nginx/reverse-proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/docker/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      dashboard:
+        condition: service_started
+      web:
+        condition: service_started
+    networks:
+      - internal
+      - edge
+
+volumes:
+  postgres_data:
+  redis_data:
+  knowledge_data:
+
+networks:
+  internal:
+    driver: bridge
+  edge:
+    driver: bridge

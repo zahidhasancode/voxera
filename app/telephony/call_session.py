@@ -14,7 +14,6 @@ blocking I/O on the event loop; use async APIs or run_blocking in executor.
 """
 
 import asyncio
-import struct
 import time
 from enum import Enum
 from typing import Awaitable, Callable, Optional
@@ -40,13 +39,14 @@ from app.conversation.state import ConversationState
 from app.conversation.turn_manager import TurnManager
 from app.core.logger import get_logger
 from app.llm.llm_consumer import LLMConsumer
-from app.llm.streaming_engine import MockStreamingLLMEngine
-from app.stt.engine import MockSTTEngine, StreamingSTTEngine
+from app.stt.engine import StreamingSTTEngine
 from app.stt.consumer import STTConsumer
 from app.stt.models import TranscriptEvent
 from app.telephony.audio_convert import convert_twilio_audio, pcm16_16k_to_twilio_audio
 from app.telephony.twilio_stream import build_twilio_media_message
-from app.tts import MockStreamingTTSEngine, TTSConsumer
+from app.tts import TTSConsumer
+from app.voice.audio import normalize_pcm16, pcm_frame_energy
+from app.voice.factory import build_llm_engine, build_stt_engine, build_tts_engine
 
 logger = get_logger(__name__)
 
@@ -72,21 +72,41 @@ SILENCE_PROMPT_MESSAGE = "Are you still there?"
 class CallSessionState(Enum):
     """Call session state for Twilio Media Streams."""
 
+    INCOMING = "incoming"
     CONNECTING = "connecting"
+    CONNECTED = "connected"
+    STREAMING = "streaming"
     LISTENING = "listening"
     PROCESSING = "processing"
     SPEAKING = "speaking"
+    PAUSED = "paused"
     INTERRUPTED = "interrupted"
+    TRANSFERRED = "transferred"
+    FAILED = "failed"
+    TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
     ENDED = "ended"
 
 
 # Allowed (from_state, to_state) transitions
 _VALID_TRANSITIONS: set[tuple[CallSessionState, CallSessionState]] = {
+    (CallSessionState.INCOMING, CallSessionState.CONNECTING),
+    (CallSessionState.CONNECTING, CallSessionState.CONNECTED),
     (CallSessionState.CONNECTING, CallSessionState.LISTENING),
+    (CallSessionState.CONNECTED, CallSessionState.STREAMING),
+    (CallSessionState.CONNECTED, CallSessionState.LISTENING),
+    (CallSessionState.STREAMING, CallSessionState.LISTENING),
+    (CallSessionState.LISTENING, CallSessionState.STREAMING),
     (CallSessionState.LISTENING, CallSessionState.PROCESSING),
     (CallSessionState.PROCESSING, CallSessionState.SPEAKING),
     (CallSessionState.SPEAKING, CallSessionState.INTERRUPTED),
+    (CallSessionState.SPEAKING, CallSessionState.PAUSED),
+    (CallSessionState.PAUSED, CallSessionState.LISTENING),
     (CallSessionState.INTERRUPTED, CallSessionState.LISTENING),
+    (CallSessionState.LISTENING, CallSessionState.TIMEOUT),
+    (CallSessionState.PROCESSING, CallSessionState.FAILED),
+    (CallSessionState.SPEAKING, CallSessionState.FAILED),
+    (CallSessionState.STREAMING, CallSessionState.TRANSFERRED),
 }
 for s in CallSessionState:
     if s != CallSessionState.ENDED:
@@ -203,11 +223,7 @@ class CallSession:
             on_user_turn_completed=self._on_user_turn_completed,
             on_user_interrupted=self._on_user_interrupted,
         )
-        self.stt_engine = MockSTTEngine(
-            partial_interval=BARGE_IN_PARTIAL_INTERVAL,
-            word_probability=0.25,
-            silence_threshold=15,
-        )
+        self.stt_engine = build_stt_engine()
         self.stt_consumer = STTConsumer(
             engine=self.stt_engine,
             transcript_callback=self._transcript_callback,
@@ -215,13 +231,13 @@ class CallSession:
             error_callback=self._on_stt_error,
         )
 
-        llm_engine = MockStreamingLLMEngine(min_token_delay_ms=20.0, max_token_delay_ms=40.0)
+        llm_engine = build_llm_engine()
         self.llm_consumer = LLMConsumer(
             engine=llm_engine,
             send_json=_send_json_with_first_token,
             conversation_id=str(self.conversation_id),
         )
-        tts_engine = MockStreamingTTSEngine()
+        tts_engine = build_tts_engine()
         self.tts_consumer = TTSConsumer(
             engine=tts_engine,
             send_bytes=self.send_audio_frame,
@@ -230,6 +246,7 @@ class CallSession:
         )
 
         await self.stt_consumer.start()
+        await self.transition_to(CallSessionState.CONNECTED)
         await self.transition_to(CallSessionState.LISTENING)
         self._silence_task = asyncio.create_task(self._silence_loop())
         log_telephony(
@@ -544,14 +561,7 @@ class CallSession:
             pass
 
     def _frame_energy(self, frame: bytes) -> float:
-        """Mean absolute value of PCM16 samples (0–32767). Used for VAD."""
-        if len(frame) < 2:
-            return 0.0
-        n = len(frame) // 2
-        total = 0
-        for i in range(n):
-            total += abs(struct.unpack_from("<h", frame, i * 2)[0])
-        return total / n if n else 0.0
+        return pcm_frame_energy(frame)
 
     async def feed_mulaw(self, mulaw_bytes: bytes) -> None:
         """Feed decoded μ-law into STT (buffer and dispatch 20 ms frames). Non-blocking.
@@ -563,10 +573,12 @@ class CallSession:
         try:
             if not mulaw_bytes:
                 return
-            pcm = convert_twilio_audio(mulaw_bytes)
+            pcm = normalize_pcm16(convert_twilio_audio(mulaw_bytes))
             async with self._lock:
                 if self._state == CallSessionState.ENDED:
                     return
+                if self._state in (CallSessionState.CONNECTED, CallSessionState.LISTENING):
+                    self._apply_transition(CallSessionState.STREAMING)
                 stt = self.stt_consumer
                 if not stt:
                     return
@@ -665,7 +677,9 @@ class CallSession:
                 if self.stt_consumer:
                     await self.stt_consumer.stop()
                     self.stt_consumer = None
-                self.stt_engine = None
+                if self.stt_engine:
+                    await self.stt_engine.close()
+                    self.stt_engine = None
                 self.turn_manager = None
                 self.llm_consumer = None
                 self.tts_consumer = None

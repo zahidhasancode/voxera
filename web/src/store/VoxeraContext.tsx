@@ -45,21 +45,8 @@ export interface VoxeraState {
   audioActive: boolean;
   llmMetricHistory: LLMMetrics[];
   ttsMetricHistory: TTSMetricsPayload[];
+  connectionError: string | null;
 }
-
-const defaultMetrics: LLMMetrics = {
-  time_to_first_token_ms: 0,
-  total_generation_ms: 0,
-  token_count: 0,
-  tokens_per_second: 0,
-};
-
-const defaultTtsMetrics: TTSMetricsPayload = {
-  time_to_first_audio_ms: 0,
-  total_audio_ms: 0,
-  frame_count: 0,
-  frames_per_second: 0,
-};
 
 const defaultState: VoxeraState = {
   connectionStatus: "disconnected",
@@ -73,6 +60,7 @@ const defaultState: VoxeraState = {
   audioActive: false,
   llmMetricHistory: [],
   ttsMetricHistory: [],
+  connectionError: null,
 };
 
 type VoxeraContextValue = VoxeraState & {
@@ -97,7 +85,7 @@ export function VoxeraProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(() => {
     if (wsRef.current?.connected) return;
-    setState((s) => ({ ...s, connectionStatus: "connecting" }));
+    setState((s) => ({ ...s, connectionStatus: "connecting", connectionError: null }));
 
     const player = new PCM16Player({
       onStateChange: (playing) => {
@@ -116,12 +104,20 @@ export function VoxeraProvider({ children }: { children: ReactNode }) {
         if (!ev || typeof ev !== "object" || !("type" in ev)) return;
 
         switch (ev.type) {
-          case "connection":
+          case "connection": {
+            const status = (ev as { status: string }).status;
             setState((s) => ({
               ...s,
-              connectionStatus: (ev as { status: string }).status === "connected" ? "connected" : "disconnected",
+              connectionStatus: status === "connected" ? "connected" : "disconnected",
+              connectionError:
+                status === "connected"
+                  ? null
+                  : s.connectionStatus === "connecting"
+                  ? "Could not connect to server"
+                  : s.connectionError,
             }));
             break;
+          }
 
           case "ping":
             ws.sendJson({ type: "pong" });
@@ -238,7 +234,23 @@ export function VoxeraProvider({ children }: { children: ReactNode }) {
 
           case "partial": {
             const e = ev as TranscriptPartialEvent;
-            setState((s) => ({ ...s, userSpeaking: true }));
+            setState((s) => {
+              const partialId = `usr-partial-${e.utterance_id ?? "live"}`;
+              const idx = s.turns.findIndex((t) => t.id === partialId);
+              const turns = [...s.turns];
+              if (idx >= 0) {
+                turns[idx] = { ...turns[idx], text: e.transcript, isPartial: true };
+              } else {
+                turns.push({
+                  id: partialId,
+                  role: "user",
+                  text: e.transcript,
+                  isPartial: true,
+                  timestamp: Date.now(),
+                });
+              }
+              return { ...s, turns, userSpeaking: true };
+            });
             break;
           }
 
