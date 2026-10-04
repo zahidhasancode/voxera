@@ -8,17 +8,21 @@ from app.llm.providers.anthropic_engine import AnthropicStreamingLLMEngine
 from app.llm.providers.failover_engine import FailoverStreamingLLMEngine
 from app.llm.providers.groq_engine import GroqStreamingLLMEngine
 from app.llm.providers.openai_engine import OpenAIStreamingLLMEngine
-from app.llm.streaming_engine import StreamingLLMEngine
-from app.stt.engine import StreamingSTTEngine
+from app.llm.streaming_engine import MockStreamingLLMEngine, StreamingLLMEngine
+from app.stt.engine import MockSTTEngine, StreamingSTTEngine
 from app.stt.providers.deepgram_engine import DeepgramStreamingSTTEngine
 from app.tts.providers.elevenlabs_engine import ElevenLabsStreamingTTSEngine
 from app.tts.providers.openai_tts_engine import OpenAIStreamingTTSEngine
-from app.tts.streaming_engine import StreamingTTSEngine
+from app.tts.streaming_engine import MockStreamingTTSEngine, StreamingTTSEngine
+
+MOCK = "mock"
 
 
 def build_stt_engine(*, partial_interval: int = 1) -> StreamingSTTEngine:
     provider = settings.STT_PROVIDER
     if not provider:
+        if settings.voice_mocks_allowed:
+            return MockSTTEngine(partial_interval=3, word_probability=0.25, silence_threshold=15, energy_threshold=300.0)
         raise ValueError("STT_PROVIDER must be configured")
     provider_id = STTProviderType(provider)
     if provider_id == STTProviderType.DEEPGRAM:
@@ -31,6 +35,8 @@ def build_stt_engine(*, partial_interval: int = 1) -> StreamingSTTEngine:
 def build_llm_engine() -> StreamingLLMEngine:
     provider = settings.LLM_PROVIDER
     if not provider:
+        if settings.voice_mocks_allowed:
+            return MockStreamingLLMEngine()
         raise ValueError("LLM_PROVIDER must be configured")
     primary = _build_single_llm(LLMProviderType(provider))
     failover = None
@@ -74,6 +80,8 @@ def _build_single_llm(provider_id: LLMProviderType) -> StreamingLLMEngine:
 def build_tts_engine(*, voice_id: str | None = None) -> StreamingTTSEngine:
     provider = settings.TTS_PROVIDER
     if not provider:
+        if settings.voice_mocks_allowed:
+            return MockStreamingTTSEngine(sample_rate=settings.VOICE_SAMPLE_RATE, frame_duration_ms=settings.VOICE_FRAME_MS)
         raise ValueError("TTS_PROVIDER must be configured")
     provider_id = TTSProviderType(provider)
     selected_voice = voice_id or settings.VOICE_TTS_VOICE_ID
@@ -90,3 +98,12 @@ def build_tts_engine(*, voice_id: str | None = None) -> StreamingTTSEngine:
             raise ValueError("VOICE_OPENAI_API_KEY or OPENAI_API_KEY is required")
         return OpenAIStreamingTTSEngine(api_key=api_key, voice=selected_voice)
     raise ValueError(f"Unsupported TTS provider: {provider_id}")
+
+
+def describe_voice_providers() -> dict[str, str]:
+    """Names of the engines a new session will use ("mock" when a provider is not configured)."""
+    return {
+        "stt": settings.STT_PROVIDER or MOCK,
+        "llm": settings.LLM_PROVIDER or MOCK,
+        "tts": settings.TTS_PROVIDER or MOCK,
+    }

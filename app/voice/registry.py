@@ -14,7 +14,10 @@ async def validate_voice_platform() -> None:
     if not settings.VOICE_REQUIRE_PROVIDERS and not (
         settings.STT_PROVIDER or settings.LLM_PROVIDER or settings.TTS_PROVIDER
     ):
-        logger.info("Voice providers not configured — voice endpoints will fail until configured")
+        logger.info(
+            "Voice providers not configured",
+            extra_fields={"mock_engines": settings.voice_mocks_allowed},
+        )
         return
 
     if settings.VOICE_REQUIRE_PROVIDERS or settings.is_production:

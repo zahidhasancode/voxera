@@ -1,6 +1,5 @@
 """MemoryManager implementation — single Planner entry point."""
 
-import time
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -233,7 +232,6 @@ class MemoryManagerImpl(MemoryManager):
         agent_id: UUID,
         conversation_id: UUID,
     ) -> StructuredSummary:
-        started = time.monotonic()
         session = await self._require_session(tenant_id, agent_id, conversation_id)
         turns = await self._turns.list_by_conversation(tenant_id, agent_id, conversation_id, limit=500)
         summary = await self._summarizer.summarize(turns, language=session.language)
@@ -241,7 +239,6 @@ class MemoryManagerImpl(MemoryManager):
             tenant_id, agent_id, conversation_id, summary, turn_count=len(turns)
         )
         await self._cache.delete(self._cache_ns(tenant_id, conversation_id), "summary")
-        elapsed_ms = int((time.monotonic() - started) * 1000)
         summary = summary.model_copy()
         return summary
 
@@ -305,7 +302,7 @@ class MemoryManagerImpl(MemoryManager):
         agent_id: UUID,
         conversation_id: UUID,
     ) -> MemoryMetricsSnapshot:
-        session = await self._require_session(tenant_id, agent_id, conversation_id, allow_completed=True)
+        await self._require_session(tenant_id, agent_id, conversation_id, allow_completed=True)
         turns = await self._turns.list_by_conversation(tenant_id, agent_id, conversation_id, limit=500)
         wm = await self._working_memory.list_by_conversation(tenant_id, agent_id, conversation_id)
         size_bytes = sum(len(t.message.encode()) for t in turns)

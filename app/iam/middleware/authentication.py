@@ -15,7 +15,6 @@ from app.core.exceptions import CrossOrganizationAccessError, InsufficientPermis
 from app.core.logger import get_logger, get_request_id
 from app.core.observability import platform_metrics
 from app.database.session import get_db_session
-from app.iam.auth.authentication_service import AuthenticationService
 from app.infrastructure.iam.factory import build_iam_service
 
 logger = get_logger(__name__)

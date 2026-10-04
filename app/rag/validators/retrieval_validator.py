@@ -9,7 +9,7 @@ from app.core.exceptions import (
     RetrievalValidationError,
     UnauthorizedAgentAccessError,
 )
-from app.rag.interfaces.models import BuiltContext, RankedChunk, RetrievalRequest, RetrievalResponse
+from app.rag.interfaces.models import BuiltContext, RetrievalRequest, RetrievalResponse
 from app.rag.validators.sanitizer import PromptInjectionSanitizer
 
 

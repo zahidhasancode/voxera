@@ -5,7 +5,7 @@ export function HeroMock() {
         <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
         <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
         <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-        <span className="ml-2 text-2xs text-muted-foreground">VOXERA Dashboard — Live conversation</span>
+        <span className="ml-2 text-2xs text-muted-foreground">VOXERA console — illustration, not a live session</span>
       </div>
       <div className="grid gap-0 lg:grid-cols-5">
         <div className="hidden border-r border-border bg-muted/20 p-4 lg:col-span-1 lg:block">
@@ -22,7 +22,7 @@ export function HeroMock() {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Support Agent</p>
-              <p className="text-sm font-semibold text-foreground">Active · 342ms latency</p>
+              <p className="text-sm font-semibold text-foreground">Example conversation</p>
             </div>
             <span className="rounded-full bg-success-muted px-2.5 py-0.5 text-2xs font-medium text-success animate-pulse-soft">
               Listening

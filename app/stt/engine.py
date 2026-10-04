@@ -1,13 +1,13 @@
 """Streaming STT engine interface and mock implementation."""
 
-import asyncio
 import random
 import uuid
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Optional
 
 from app.core.logger import get_logger
 from app.stt.models import TranscriptEvent, TranscriptType
+from app.voice.audio import pcm_frame_energy
 
 logger = get_logger(__name__)
 
@@ -60,6 +60,7 @@ class MockSTTEngine(StreamingSTTEngine):
         partial_interval: int = 3,  # More frequent partials for better verification
         word_probability: float = 0.25,  # Higher probability to generate words faster
         silence_threshold: int = 15,  # Longer silence before finalizing
+        energy_threshold: Optional[float] = None,
     ):
         """Initialize mock STT engine.
 
@@ -71,6 +72,9 @@ class MockSTTEngine(StreamingSTTEngine):
         self.partial_interval = partial_interval
         self.word_probability = word_probability
         self.silence_threshold = silence_threshold
+        # With a threshold, frames quieter than it count as silence, so the mock only
+        # "hears" words while someone is actually making sound (needed with a live mic).
+        self.energy_threshold = energy_threshold
 
         self._utterance_id: Optional[str] = None
         self._frame_count = 0
@@ -110,8 +114,14 @@ class MockSTTEngine(StreamingSTTEngine):
 
         self._frame_count += 1
 
-        # Simulate word generation (works even with dummy bytes)
-        if random.random() < self.word_probability:
+        audible = self.energy_threshold is None or pcm_frame_energy(frame) >= self.energy_threshold
+        if not audible and not self._words:
+            # Silence before any speech: nothing to transcribe yet.
+            self._frame_count = 0
+            return None
+
+        # Simulate word generation (works even with dummy bytes when no threshold is set)
+        if audible and random.random() < self.word_probability:
             word = random.choice(self._mock_words)
             self._words.append(word)
             self._silence_count = 0  # Reset silence counter
@@ -123,7 +133,7 @@ class MockSTTEngine(StreamingSTTEngine):
                     "total_words": len(self._words),
                 },
             )
-        else:
+        elif self.energy_threshold is None or not audible:
             self._silence_count += 1
 
         # Emit partial transcript at intervals

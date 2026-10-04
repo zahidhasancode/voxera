@@ -3,7 +3,6 @@
 import pytest
 from fastapi import HTTPException
 
-from app.core.exceptions import InsufficientPermissionsError
 from app.iam.api.deps import require_permissions
 from app.iam.auth.principal import AuthenticatedPrincipal
 

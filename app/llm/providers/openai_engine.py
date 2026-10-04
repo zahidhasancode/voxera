@@ -5,12 +5,13 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, Sequence
 
 import httpx
 
 from app.core.config import settings
 from app.core.logger import get_logger
+from app.voice.http import get_http_client
 from app.llm.streaming_engine import LLMGenerationMetrics, StreamToken, StreamingLLMEngine
 
 logger = get_logger(__name__)
@@ -51,6 +52,7 @@ class OpenAIStreamingLLMEngine(StreamingLLMEngine):
         *,
         utterance_id: Optional[str] = None,
         conversation_id: Optional[str] = None,
+        history: Optional[Sequence[dict]] = None,
     ) -> AsyncIterator[StreamToken]:
         start = time.monotonic()
         first_token_time: float | None = None
@@ -61,33 +63,35 @@ class OpenAIStreamingLLMEngine(StreamingLLMEngine):
             "max_tokens": self._max_tokens,
             "messages": [
                 {"role": "system", "content": self._system_prompt},
+                *[{"role": m["role"], "content": m["content"]} for m in (history or [])],
                 {"role": "user", "content": prompt or "(silence)"},
             ],
         }
         try:
-            async with httpx.AsyncClient(timeout=settings.VOICE_LLM_TIMEOUT_SECONDS) as client:
-                async with client.stream(
-                    "POST",
-                    f"{self._api_base}/chat/completions",
-                    headers=self._headers(),
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line or not line.startswith("data: "):
-                            continue
-                        data = line[6:].strip()
-                        if data == "[DONE]":
-                            break
-                        chunk = json.loads(data)
-                        delta = chunk["choices"][0].get("delta", {})
-                        token = delta.get("content")
-                        if not token:
-                            continue
-                        if first_token_time is None:
-                            first_token_time = time.monotonic()
-                        yield StreamToken(token=token, token_index=token_count)
-                        token_count += 1
+            client = get_http_client()
+            async with client.stream(
+                "POST",
+                f"{self._api_base}/chat/completions",
+                headers=self._headers(),
+                json=payload,
+                timeout=settings.VOICE_LLM_TIMEOUT_SECONDS,
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line or not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    chunk = json.loads(data)
+                    delta = chunk["choices"][0].get("delta", {})
+                    token = delta.get("content")
+                    if not token:
+                        continue
+                    if first_token_time is None:
+                        first_token_time = time.monotonic()
+                    yield StreamToken(token=token, token_index=token_count)
+                    token_count += 1
         except asyncio.CancelledError:
             logger.info(
                 "OpenAI LLM stream cancelled",

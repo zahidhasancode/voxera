@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from app.core.enums import ConversationStatus, SessionState
-from app.memory.schemas import SessionRead, WorkingMemoryRead
+from app.memory.schemas import SessionRead
 from app.memory.validators.access_validator import MemoryAccessValidator
 from app.core.exceptions import CrossTenantMemoryError, SessionExpiredError
 

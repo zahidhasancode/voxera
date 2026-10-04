@@ -6,7 +6,6 @@ from uuid import UUID
 from app.memory.schemas import (
     AppendMessageRequest,
     AppendToolResultRequest,
-    PlannerContext,
     StructuredSummary,
     SummaryRead,
     ToolExecutionRead,

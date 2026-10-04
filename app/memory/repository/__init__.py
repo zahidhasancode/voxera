@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from uuid import UUID
 
-from app.core.enums import ConversationStatus, SessionState
+from app.core.enums import SessionState
 from app.memory.schemas import (
     AppendMessageRequest,
     AppendToolResultRequest,

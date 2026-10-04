@@ -1,6 +1,6 @@
 # Voice Infrastructure Architecture
 
-VOXERA's live voice stack runs over WebSocket (`/api/v1/`) and Twilio Media Streams (`/twilio/stream`). All mock STT/LLM/TTS engines were replaced with configuration-driven production providers.
+VOXERA's live voice stack runs over WebSocket (`/api/v1/`) and Twilio Media Streams (`/twilio/stream`). Engines are chosen by configuration (`STT_PROVIDER`, `LLM_PROVIDER`, `TTS_PROVIDER`). Built-in mock engines stand in for a provider that is not configured, in development only. The provider adapters have not been load-tested or run in production.
 
 ## Pipeline
 

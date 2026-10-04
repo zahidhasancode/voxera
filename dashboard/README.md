@@ -1,6 +1,11 @@
-# VOXERA Enterprise Admin Dashboard
+# VOXERA Dashboard
 
-Production-grade operating console for enterprise voice AI operations — not a marketing demo.
+The web front end for [VOXERA](https://github.com/zahidhasancode/voxera), a personal real-time voice-agent prototype by MD Zahid Hasan. It contains two things:
+
+- **Project page** (`/`) — a static page describing what the prototype is and what works. This is what the hosted deployment shows.
+- **Admin console** (`/login`, `/app/*`) — a UI prototype. It needs the VOXERA backend API running locally. The hosted deployment has no backend, so sign-in does not work there.
+
+This is not a commercial product: there is no company, hosted service, pricing, or support behind it. Plan names and prices in the console's billing screens are placeholder data for the UI prototype.
 
 ## Stack
 
@@ -10,7 +15,7 @@ Production-grade operating console for enterprise voice AI operations — not a 
 - **Recharts** · **Framer Motion** (subtle) · **React Hook Form** + **Zod**
 - **Lucide React** · **Vitest** + Testing Library
 
-## Console Features
+## Console screens
 
 | Module | Description |
 |--------|-------------|
@@ -25,7 +30,9 @@ Production-grade operating console for enterprise voice AI operations — not a 
 | **Users** | RBAC roles, invites, sessions |
 | **Analytics** | Call volume, resolution, latency, cost trends |
 | **Audit logs** | Searchable planner/verifier/workflow/tool events |
-| **Billing** | Plans, usage, invoices, Stripe portal |
+| **Billing** | Plans, usage, invoices (placeholder plan data) |
+
+These are screens in a UI prototype. Each one shows data only when the matching backend endpoint is running and returns it; see "Backend integration" below for what is connected.
 
 ## Run
 
@@ -35,11 +42,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5174](http://localhost:5174). Sign in with your IAM credentials (JWT issued by `/iam/auth/login`).
+Open [http://localhost:5173](http://localhost:5173) (the port set in `vite.config.ts`; Vite picks the next free port if 5173 is taken). The dev server proxies `/api` to the backend at `http://localhost:8000`, so start the backend first — see the [repository README](../README.md).
+
+Sign in to the console with credentials from your local backend (JWT issued by `/iam/auth/login`). If the backend is not running, the login page shows an error.
 
 ## Backend integration
 
-The dashboard is wired to the real VOXERA API — no demo auth or mock metrics on connected pages.
+Connected pages call the VOXERA API directly; they do not fall back to mock data.
 
 | Connected | Pending backend |
 |-----------|-----------------|
@@ -61,9 +70,9 @@ See [docs/architecture/dashboard-integration.md](../docs/architecture/dashboard-
 ## Scripts
 
 ```bash
-npm run dev       # Development server
-npm run build     # Production build
-npm run preview   # Preview production build
+npm run dev       # Development server (port 5173)
+npm run build     # Type-check and build the static bundle into dist/
+npm run preview   # Serve the built bundle locally
 npm run test      # Vitest unit tests
 ```
 
@@ -91,7 +100,7 @@ Live call center uses `useOperationsWebSocket` → `liveCallsStore` (Zustand). W
 
 ## Design Principles
 
-- Premium, minimal, enterprise-grade (Datadog / Stripe / Cloudflare style)
+- Minimal, dense operations-console style
 - Desktop-first, responsive, dark & light themes
-- WCAG AA accessibility — keyboard nav, focus states, ARIA
+- Keyboard navigation, focus states, and ARIA labels on shared components (not audited)
 - No glassmorphism or excessive gradients

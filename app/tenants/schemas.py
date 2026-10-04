@@ -1,6 +1,5 @@
 """Tenant domain — Pydantic schemas."""
 
-from datetime import datetime
 from uuid import UUID
 
 from pydantic import EmailStr, Field

@@ -1,6 +1,7 @@
 """RAG subsystem factory and singletons."""
 
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 from app.infrastructure.knowledge.providers import get_embedding_provider, get_vector_store
 from app.infrastructure.rag.agent_scope import SqlAlchemyAgentKnowledgeScope
@@ -10,6 +11,9 @@ from app.rag.prompt_builder.enterprise import EnterprisePromptBuilder
 from app.rag.ranking.strategies import CosineSimilarityRankingStrategy, RankingStrategyRegistry
 from app.rag.retriever.enterprise_retriever import EnterpriseRetrieverImpl
 from app.rag.validators.retrieval_validator import RetrievalValidator
+
+if TYPE_CHECKING:
+    from app.rag.services.enterprise_rag_service import EnterpriseRAGService
 
 
 @lru_cache

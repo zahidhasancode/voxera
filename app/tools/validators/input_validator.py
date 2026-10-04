@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from jsonschema import Draft202012Validator, ValidationError
+from jsonschema import Draft202012Validator
 
 
 class ToolInputValidator:

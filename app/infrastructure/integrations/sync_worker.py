@@ -8,12 +8,10 @@ from datetime import datetime, timezone
 
 from app.core.enums import IntegrationSyncJobStatus
 from app.core.logger import get_logger
-from app.database.models.integration import IntegrationSyncJobModel
 from app.database.session import session_scope
 from app.infrastructure.repositories.integration.repositories import SqlAlchemyIntegrationRepository
 from app.integrations.monitoring.metrics import integration_metrics
 from app.integrations.providers.base import ConnectionContext
-from app.integrations.providers.registry import integration_provider_registry
 from app.integrations.sync.engine import sync_engine
 
 logger = get_logger(__name__)

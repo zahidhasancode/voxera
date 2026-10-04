@@ -7,7 +7,6 @@ from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.enums import VerifierAuditStatus, VerifierOutcome, VerifierRiskLevel
 from app.database.base import Base, TenantScopedMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
 

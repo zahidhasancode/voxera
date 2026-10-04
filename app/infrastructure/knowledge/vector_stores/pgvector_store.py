@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.config import settings
 from app.core.logger import get_logger
 from app.knowledge.retrieval.vector_store import VectorRecord, VectorSearchRequest, VectorSearchResult, VectorStore
 

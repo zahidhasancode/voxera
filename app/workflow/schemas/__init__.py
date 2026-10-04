@@ -7,12 +7,9 @@ from uuid import UUID
 from pydantic import Field
 
 from app.core.enums import (
-    EscalationTarget,
     RoutingStrategy,
     RuleActionType,
     RuleOperator,
-    WorkflowApprovalMode,
-    WorkflowApprovalStatus,
     WorkflowEventType,
     WorkflowExecutionStatus,
     WorkflowState,

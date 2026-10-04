@@ -4,7 +4,6 @@ from abc import abstractmethod
 from typing import Any
 
 from app.tools.interfaces.tool import Tool
-from app.tools.schemas.execution import ToolExecutionContext
 
 
 class BuiltinTool(Tool):

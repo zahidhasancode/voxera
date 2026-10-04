@@ -13,7 +13,7 @@ os.environ.setdefault("SECRET_KEY", "test-legacy-secret-key-32-characters!!")
 os.environ.setdefault("VOICE_REQUIRE_PROVIDERS", "false")
 os.environ.setdefault("KNOWLEDGE_REQUIRE_PROVIDERS", "false")
 
-import pytest
+import pytest  # noqa: E402
 
 pytest_plugins = [
     "tests.fixtures.app",

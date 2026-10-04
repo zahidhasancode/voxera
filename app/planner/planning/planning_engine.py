@@ -16,7 +16,6 @@ class PlanningEngine:
         action: PlannerAction,
         expected_tool: str | None = None,
     ) -> ExecutionPlan:
-        message = (context.current_user_message or "").lower()
         wm = context.working_memory
 
         if intent == PlannerIntent.APPOINTMENT:

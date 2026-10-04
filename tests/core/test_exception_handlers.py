@@ -1,6 +1,5 @@
 """Exception handler tests."""
 
-import pytest
 from fastapi import HTTPException, status
 
 from app.core.errors import ErrorCode

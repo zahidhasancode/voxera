@@ -8,7 +8,6 @@ from pydantic import EmailStr, Field
 from app.core.enums import (
     ApiKeyEnvironment,
     ApiKeyStatus,
-    IamMembershipStatus,
     IamSessionStatus,
     IamUserStatus,
     OrganizationStatus,

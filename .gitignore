@@ -1,20 +1,20 @@
-# Python
+# Python (anchored to the repo root so they do not hide source folders such as dashboard/src/lib or deploy/env)
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
+/build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
-parts/
+/lib/
+/lib64/
+/parts/
 sdist/
-var/
+/var/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
@@ -24,11 +24,11 @@ share/python-wheels/
 MANIFEST
 
 # Virtual Environment
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
+/venv/
+/env/
+/ENV/
+/env.bak/
+/venv.bak/
 .venv
 
 # IDE
@@ -69,7 +69,11 @@ web/node_modules/
 dashboard/node_modules/
 *.tsbuildinfo
 dashboard/dist/
+web/dist/
 .cursor/
+.vercel
+
 
 # Knowledge uploads (local dev storage)
 data/knowledge/
+.env*.local

@@ -2,7 +2,6 @@
 
 from uuid import uuid4
 
-import pytest
 
 from app.core.enums import PlannerAction, PlannerIntent, SessionState
 from app.planner.schemas import ExecutionPlan, PlannerPlan, ToolCallPlan

@@ -1,6 +1,6 @@
 """Tenant ORM model."""
 
-from sqlalchemy import String, Text
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

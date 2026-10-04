@@ -13,7 +13,7 @@
 | Dashboard | Metrics |
 |-----------|---------|
 | API | `voxera_http_requests_total`, latency p95/p99, errors |
-| Voice | `voxera_voice_latency_ms`, queue depth, dropped frames |
+| Voice | `voxera_voice_first_audio_ms`, `voxera_audio_queue_wait_ms`, queue depth, dropped frames |
 | Infrastructure | CPU, memory, pod restarts, HPA desired replicas |
 
 Access Grafana: `http://<host>:3000` (compose monitoring stack)

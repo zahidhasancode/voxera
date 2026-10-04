@@ -14,6 +14,7 @@ blocking I/O on the event loop; use async APIs or run_blocking in executor.
 """
 
 import asyncio
+import json
 import time
 from enum import Enum
 from typing import Awaitable, Callable, Optional
@@ -37,8 +38,9 @@ from app.telephony.telephony_log import (
 from app.conversation.events import UserInterrupted, UserTurnCompleted, UserTurnStarted
 from app.conversation.state import ConversationState
 from app.conversation.turn_manager import TurnManager
+from app.core.config import settings
 from app.core.logger import get_logger
-from app.llm.llm_consumer import LLMConsumer
+from app.llm.llm_consumer import COMPLETED, FAILED, LLMConsumer
 from app.stt.engine import StreamingSTTEngine
 from app.stt.consumer import STTConsumer
 from app.stt.models import TranscriptEvent
@@ -99,7 +101,10 @@ _VALID_TRANSITIONS: set[tuple[CallSessionState, CallSessionState]] = {
     (CallSessionState.LISTENING, CallSessionState.STREAMING),
     (CallSessionState.LISTENING, CallSessionState.PROCESSING),
     (CallSessionState.PROCESSING, CallSessionState.SPEAKING),
+    (CallSessionState.PROCESSING, CallSessionState.LISTENING),
+    (CallSessionState.PROCESSING, CallSessionState.INTERRUPTED),
     (CallSessionState.SPEAKING, CallSessionState.INTERRUPTED),
+    (CallSessionState.SPEAKING, CallSessionState.LISTENING),
     (CallSessionState.SPEAKING, CallSessionState.PAUSED),
     (CallSessionState.PAUSED, CallSessionState.LISTENING),
     (CallSessionState.INTERRUPTED, CallSessionState.LISTENING),
@@ -150,6 +155,7 @@ class CallSession:
         self.stt_engine: Optional[StreamingSTTEngine] = None
         self.stt_consumer: Optional[STTConsumer] = None
         self.llm_consumer: Optional[LLMConsumer] = None
+        self._history: list[dict] = []
         self.tts_consumer: Optional[TTSConsumer] = None
 
     @property
@@ -175,7 +181,6 @@ class CallSession:
                 to_state=new_state.value,
             )
             return False
-        old = self._state
         self._state = new_state
         return True
 
@@ -238,11 +243,21 @@ class CallSession:
             conversation_id=str(self.conversation_id),
         )
         tts_engine = build_tts_engine()
+        async def _send_json_with_clear(payload: dict) -> None:
+            # Twilio buffers outbound audio; a barge-in must tell it to drop that buffer.
+            if payload.get("type") == "tts_clear" and self._send_text is not None:
+                try:
+                    await self._send_text(json.dumps({"event": "clear", "streamSid": self.stream_sid}))
+                except Exception:
+                    pass
+            await send_json(payload)
+
         self.tts_consumer = TTSConsumer(
             engine=tts_engine,
             send_bytes=self.send_audio_frame,
-            send_json=send_json,
+            send_json=_send_json_with_clear,
             conversation_id=str(self.conversation_id),
+            on_playback_end=self._on_tts_playback_end,
         )
 
         await self.stt_consumer.start()
@@ -294,34 +309,43 @@ class CallSession:
             tts = self.tts_consumer
         if not llm or not tts:
             return
-        async def _run_llm_with_timeout() -> None:
+        text = event.transcript.strip()
+        history = list(self._history)
+        self._remember("user", text)
+        first_token = asyncio.Event()
+
+        async def _on_complete(full_text: str, outcome: str) -> None:
+            first_token.set()
+            if full_text.strip():
+                self._remember("assistant", full_text.strip())
+            if outcome == COMPLETED:
+                await tts.finish()
+            elif outcome == FAILED:
+                await self._handle_pipeline_error("llm", RuntimeError("LLM stream failed"))
+
+        async def _watchdog() -> None:
+            """Give up if the model has produced nothing within the timeout."""
             try:
-                await asyncio.wait_for(
-                    llm.start_generation(
-                        transcript=event.transcript,
-                        utterance_id=event.utterance_id,
-                        on_system_turn_start=self._on_system_turn_start,
-                        on_system_turn_end=self._on_system_turn_end,
-                        on_llm_final=self._on_llm_final,
-                    ),
-                    timeout=LLM_TIMEOUT_SECONDS,
-                )
+                await asyncio.wait_for(first_token.wait(), timeout=LLM_TIMEOUT_SECONDS)
             except asyncio.TimeoutError as e:
-                log_telephony(
-                    EVENT_ERROR,
-                    call_sid=self.call_sid,
-                    stream_sid=self.stream_sid,
-                    conversation_id=str(self.conversation_id),
-                    state=self._state.value,
-                    metrics=self.metrics.to_log_dict(),
-                    level="warning",
-                    component="llm",
-                    error_type="TimeoutError",
-                    error=str(e),
-                    timeout_seconds=LLM_TIMEOUT_SECONDS,
-                )
+                llm.cancel()
                 await self._handle_pipeline_error("llm", e)
-        asyncio.create_task(_run_llm_with_timeout())
+
+        try:
+            await self._on_system_turn_start()
+            await tts.begin(event.utterance_id)
+            await llm.start_generation(
+                transcript=text,
+                utterance_id=event.utterance_id,
+                history=history,
+                on_first_token=first_token.set,
+                on_segment=lambda segment: self._on_llm_segment(segment, event.utterance_id),
+                on_complete=_on_complete,
+            )
+            asyncio.create_task(_watchdog())
+        except Exception as e:
+            await self._handle_pipeline_error("llm", e)
+            return
         log_telephony(
             EVENT_LLM_STARTED,
             call_sid=self.call_sid,
@@ -337,33 +361,53 @@ class CallSession:
             if self._state == CallSessionState.ENDED:
                 return
             if self.tts_consumer:
-                await self.tts_consumer.stop()
+                await self.tts_consumer.stop(reason="superseded")
             self.conversation_state.start_system_turn()
 
-    async def _on_system_turn_end(self) -> None:
-        self.conversation_state.complete_system_turn()
-
-    async def _on_llm_final(self, text: str, utterance_id: str) -> None:
+    async def _on_llm_segment(self, segment: str, utterance_id: str) -> None:
+        """One finished sentence from the LLM: start (or continue) speaking it."""
         try:
             async with self._lock:
                 if self._state == CallSessionState.ENDED:
                     return
-                if self._state != CallSessionState.PROCESSING and self._state != CallSessionState.SPEAKING:
+                if self._state not in (CallSessionState.PROCESSING, CallSessionState.SPEAKING):
                     return
-                self._apply_transition(CallSessionState.SPEAKING)
+                first = self._state == CallSessionState.PROCESSING
+                if first:
+                    self._apply_transition(CallSessionState.SPEAKING)
                 tts = self.tts_consumer
             if tts:
-                await tts.start_speaking(text=text, utterance_id=utterance_id)
-                log_telephony(
-                    EVENT_TTS_STARTED,
-                    call_sid=self.call_sid,
-                    stream_sid=self.stream_sid,
-                    conversation_id=str(self.conversation_id),
-                    state=self._state.value,
-                    utterance_id=utterance_id,
-                )
+                await tts.speak(segment)
+                if first:
+                    log_telephony(
+                        EVENT_TTS_STARTED,
+                        call_sid=self.call_sid,
+                        stream_sid=self.stream_sid,
+                        conversation_id=str(self.conversation_id),
+                        state=self._state.value,
+                        utterance_id=utterance_id,
+                    )
         except Exception as e:
             await self._handle_pipeline_error("tts", e)
+
+    async def _on_tts_playback_end(self, _utterance_id: str, interrupted: bool) -> None:
+        """The reply has been heard (or was cut off): go back to listening."""
+        if interrupted:
+            return
+        async with self._lock:
+            if self._state == CallSessionState.ENDED:
+                return
+            self.conversation_state.complete_system_turn()
+            if self._state in (CallSessionState.SPEAKING, CallSessionState.PROCESSING):
+                self._apply_transition(CallSessionState.LISTENING)
+
+    def _remember(self, role: str, content: str) -> None:
+        if not content or settings.VOICE_HISTORY_TURNS <= 0:
+            return
+        self._history.append({"role": role, "content": content})
+        overflow = len(self._history) - settings.VOICE_HISTORY_TURNS * 2
+        if overflow > 0:
+            del self._history[:overflow]
 
     async def _on_user_interrupted(self, _event: UserInterrupted) -> None:
         """Called by TurnManager when STT partial arrives while system is speaking."""
@@ -466,9 +510,7 @@ class CallSession:
             # 4. Keep conversation state in sync (barge-in semantics)
             self.conversation_state.interrupt_user()
             self.conversation_state.complete_system_turn()
-            # 5. Reset STT for clean next utterance
-            if self.stt_engine:
-                await self.stt_engine.reset()
+            # 5. Keep the STT stream open: the speech that interrupted is the next user turn.
             # 6. Transition INTERRUPTED → LISTENING
             self._apply_transition(CallSessionState.INTERRUPTED)
             self._apply_transition(CallSessionState.LISTENING)

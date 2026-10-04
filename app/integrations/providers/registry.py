@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from app.core.enums import IntegrationProviderSlug
 from app.integrations.providers.base import IntegrationProvider
 from app.integrations.providers.catalog import build_provider_catalog
 

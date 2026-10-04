@@ -127,6 +127,27 @@ class Settings(BaseSettings):
     VOICE_SAMPLE_RATE: int = Field(default=16000, ge=8000, le=48000)
     VOICE_FRAME_MS: int = Field(default=20, ge=10, le=60)
     VOICE_PCM_FRAME_BYTES: int = Field(default=640, ge=320, le=4096)
+    VOICE_ALLOW_MOCK_PROVIDERS: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Use built-in mock STT/LLM/TTS engines when a provider is not configured. "
+            "None = allowed in development only. Never allowed in production."
+        ),
+    )
+    VOICE_HISTORY_TURNS: int = Field(
+        default=8, ge=0, le=50, description="Earlier user/assistant turns sent to the LLM as context"
+    )
+    VOICE_TTS_MAX_LEAD_MS: int = Field(
+        default=250, ge=0, le=5000,
+        description="How far ahead of real-time playback speech audio may be sent (bounds what a barge-in must discard)",
+    )
+    DEEPGRAM_ENDPOINTING_MS: int = Field(
+        default=300, ge=10, le=5000, description="Silence after speech before Deepgram marks the turn finished"
+    )
+    DEEPGRAM_UTTERANCE_END_MS: int = Field(
+        default=1000, ge=1000, le=5000,
+        description="Fallback end-of-utterance signal when endpointing does not fire (noisy audio)",
+    )
     DEEPGRAM_API_KEY: Optional[str] = Field(default=None)
     DEEPGRAM_MODEL: str = Field(default="nova-2")
     DEEPGRAM_LANGUAGE: str = Field(default="en")
@@ -496,6 +517,20 @@ class Settings(BaseSettings):
     def is_development(self) -> bool:
         """Check if running in development environment."""
         return self.ENVIRONMENT == "development"
+
+    @property
+    def voice_mocks_allowed(self) -> bool:
+        """Whether mock voice engines may stand in for unconfigured providers."""
+        if self.is_production:
+            return False
+        if self.VOICE_ALLOW_MOCK_PROVIDERS is not None:
+            return self.VOICE_ALLOW_MOCK_PROVIDERS
+        return self.is_development
+
+    @property
+    def voice_dev_messages_enabled(self) -> bool:
+        """Whether the dev_test_* WebSocket messages are accepted (development only)."""
+        return self.is_development
 
     @property
     def is_staging(self) -> bool:

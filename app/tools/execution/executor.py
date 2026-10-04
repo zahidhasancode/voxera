@@ -1,10 +1,9 @@
 """Tool execution orchestration with retry, timeout, and circuit breaker."""
 
 import time
-from collections.abc import Awaitable, Callable
 from typing import Any
 
-from app.core.exceptions import ToolCircuitOpenError, ToolExecutionError
+from app.core.exceptions import ToolCircuitOpenError
 from app.tools.execution.circuit_breaker import CircuitBreakerRegistry
 from app.tools.execution.retry import RetryStrategy
 from app.tools.execution.timeout import with_timeout

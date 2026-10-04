@@ -78,7 +78,6 @@ class AudioFrameQueue:
             if was_full:
                 # Record drop of oldest frame
                 if self._queue and self._metrics:
-                    old_frame = self._queue[0]
                     self._metrics.record_drop(queue_depth, self.max_size)
 
                 # Drop oldest frame (deque with maxlen does this automatically)

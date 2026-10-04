@@ -7,10 +7,23 @@ import {
   DevControls,
 } from "./components";
 import { MicPanel } from "./components/MicPanel";
+import { TurnLatencyPanel } from "./components/TurnLatencyPanel";
 import { useVoxera } from "./store/VoxeraContext";
 
 function App() {
-  const { connectionError } = useVoxera();
+  const { connectionError, serverError, dismissServerError, audioFormatError, providers } =
+    useVoxera();
+
+  const mockNotes: string[] = [];
+  if (providers?.stt === "mock") {
+    mockNotes.push("Speech-to-text is a mock: the transcript is random words, not what you said.");
+  }
+  if (providers?.llm === "mock") {
+    mockNotes.push("The language model is a mock: replies do not come from a real model.");
+  }
+  if (providers?.tts === "mock") {
+    mockNotes.push("Text-to-speech is a mock: the reply audio is a tone, not a voice.");
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -30,6 +43,28 @@ function App() {
             </Alert>
           )}
 
+          {mockNotes.length > 0 && (
+            <Alert variant="warning" title="Mock providers">
+              {mockNotes.join(" ")}
+            </Alert>
+          )}
+
+          {audioFormatError && (
+            <Alert variant="error" title="Audio format mismatch">
+              {audioFormatError}
+            </Alert>
+          )}
+
+          {serverError && (
+            <Alert
+              variant="error"
+              title={`Server error: ${serverError.code}`}
+              onDismiss={dismissServerError}
+            >
+              {serverError.message}
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <ConversationPanel />
@@ -37,6 +72,7 @@ function App() {
             <div className="space-y-6">
               <MicPanel />
               <TurnStatePanel />
+              <TurnLatencyPanel />
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 """Conversation context merger."""
 
-from app.rag.interfaces.models import ConversationContext, ConversationTurn, ToolOutput
+from app.rag.interfaces.models import ConversationContext
 
 
 class ConversationContextMerger:

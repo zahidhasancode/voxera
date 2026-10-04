@@ -1,7 +1,6 @@
 """In-process event bus for workflow events."""
 
 from collections.abc import Awaitable, Callable
-from typing import Any
 
 from app.core.config import settings
 from app.workflow.schemas import WorkflowEvent

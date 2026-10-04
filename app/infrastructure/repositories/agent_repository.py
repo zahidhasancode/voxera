@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.repository import AgentRepository
 from app.agents.schemas import AgentCreate, AgentRead, AgentUpdate
 from app.database.models.agent import AgentModel
-from app.infrastructure.repositories._helpers import apply_partial_update, enum_values
+from app.infrastructure.repositories._helpers import apply_partial_update
 
 
 class SqlAlchemyAgentRepository(AgentRepository):

@@ -1,7 +1,7 @@
 """SQLAlchemy IAM repositories."""
 
 from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -370,7 +370,7 @@ class SqlAlchemySecurityPolicyRepository(SecurityPolicyRepository):
         return SecurityPolicyRead.model_validate(row)
 
     async def update(self, org_id: UUID, data: SecurityPolicyUpdate) -> SecurityPolicyRead:
-        policy = await self.get_or_create(org_id)
+        await self.get_or_create(org_id)
         result = await self._session.execute(
             select(IamSecurityPolicyModel).where(IamSecurityPolicyModel.organization_id == org_id)
         )
