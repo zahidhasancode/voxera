@@ -37,7 +37,8 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       ENVIRONMENT: development
       DATABASE_URL: postgresql+asyncpg://voxera:voxera@postgres:5432/voxera
