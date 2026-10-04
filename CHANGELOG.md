@@ -4,6 +4,39 @@ All notable changes to VOXERA are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+- Barge-in now stops a reply while it is playing, not only while it is being generated. The system
+  turn used to end as soon as the LLM finished.
+- The inbound audio dispatcher no longer runs on a fixed 20 ms timer. It could never catch up, so
+  the queue filled within a minute, added about one second to every turn and dropped frames.
+- OpenAI speech (24 kHz) is resampled to the pipeline rate instead of being played as 16 kHz.
+- Deepgram: only `speech_final` (or `UtteranceEnd`) ends the user's turn; a finished segment no
+  longer does.
+- A final transcript with no partial before it is answered instead of being dropped.
+- Phone calls return to listening after a reply and answer the second turn.
+- Voice connections are closed on shutdown; a provider error at connect time no longer leaks the connection.
+- `jsonschema` added to the requirements; `.gitignore` no longer hides `dashboard/src/lib` and `deploy/env`.
+
+### Added
+- Sentence-by-sentence speech: TTS starts on the first finished sentence of the LLM stream.
+- Conversation history in the voice path.
+- Real-time pacing of reply audio, and a `tts_clear` event for clients.
+- Per-turn latency (`turn_metrics`), rolling percentiles at `/api/v1/metrics`, and
+  `scripts/bench_voice_latency.py`.
+- Live microphone capture and playback in the browser demo.
+- Mock engines as an explicit development fallback, named in the connection message.
+
+### Changed
+- `dev_test_*` WebSocket messages are accepted in development only.
+- `voxera_voice_latency_ms` (which was queue wait) is now `voxera_audio_queue_wait_ms`.
+- CI runs only jobs that pass locally: ruff, unit tests, and the two frontend builds.
+
+### Removed
+- The unmounted `/ws/audio` pipeline (`app/services`, `app/models`) and its tests, the unused
+  `twilio_stt_bridge.py`, and the deploy workflows that only printed text.
+
 ## [1.0.0-RC1] - 2026-07-11
 
 ### Release Candidate — Enterprise Platform
