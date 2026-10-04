@@ -18,7 +18,8 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.11"
-  NODE_VERSION: "20"
+  # Same major version as the Vercel project and the lock files (npm 11).
+  NODE_VERSION: "24"
 
 jobs:
   lint-python:
