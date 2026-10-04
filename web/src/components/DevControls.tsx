@@ -13,11 +13,14 @@ export function DevControls() {
   return (
     <section className="rounded-xl border border-amber-700/50 bg-amber-950/20 overflow-hidden">
       <div className="px-4 py-3 border-b border-amber-700/30 bg-amber-900/20">
-        <h2 className="text-sm font-semibold text-amber-200">Developer Controls</h2>
+        <h2 className="text-sm font-semibold text-amber-200">Send test text (development only)</h2>
+        <p className="mt-0.5 text-xs text-amber-300/80">
+          Typed text sent in place of speech. It does not use the microphone or speech recognition.
+        </p>
       </div>
       <div className="p-4 space-y-4">
         <div>
-          <label className="block text-xs text-amber-300/90 mb-1">Test transcript (→ LLM → TTS)</label>
+          <label className="block text-xs text-amber-300/90 mb-1">Test transcript, as if it had been spoken (→ LLM → TTS)</label>
           <div className="flex gap-2">
             <input
               type="text"
@@ -37,7 +40,7 @@ export function DevControls() {
           </div>
         </div>
         <div>
-          <label className="block text-xs text-amber-300/90 mb-1">Test TTS only</label>
+          <label className="block text-xs text-amber-300/90 mb-1">Test TTS only: speak this text</label>
           <div className="flex gap-2">
             <input
               type="text"
