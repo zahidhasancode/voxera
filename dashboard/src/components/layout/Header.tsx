@@ -182,14 +182,6 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <a
-          href="#"
-          className="hidden items-center gap-2 rounded-xl px-3 py-2 text-2xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-hover hover:text-foreground sm:flex"
-          title="System status"
-        >
-          <span className="h-2 w-2 shrink-0 rounded-full bg-success shadow-[0_0_6px_rgba(5,150,105,0.5)]" />
-          All systems operational
-        </a>
 
         <div className="relative" ref={notifRef}>
           <button
