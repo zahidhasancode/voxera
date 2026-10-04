@@ -12,7 +12,7 @@ from app.core.enums import (
     WorkflowExecutionStatus,
     WorkflowState,
 )
-from app.core.exceptions import WorkflowNotFoundError, WorkflowPolicyViolationError
+from app.core.exceptions import WorkflowNotFoundError
 from app.workflow.approvals.approval_engine import ApprovalEngine
 from app.workflow.audit.audit_service import WorkflowAuditService
 from app.workflow.engine.event_bus import WorkflowEventBus

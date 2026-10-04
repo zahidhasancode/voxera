@@ -5,9 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from typing import Any
-from uuid import UUID
 
-from app.core.enums import IntegrationCredentialType
 from app.iam.security.secret_provider import get_secret_provider
 
 

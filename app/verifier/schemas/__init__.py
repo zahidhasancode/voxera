@@ -8,8 +8,6 @@ from pydantic import Field
 
 from app.core.enums import (
     IdentityVerificationStatus,
-    PlannerAction,
-    PlannerIntent,
     SessionState,
     VerifierOutcome,
     VerifierRiskLevel,

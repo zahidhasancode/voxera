@@ -2,7 +2,6 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.knowledge.parser_factory import build_parser_registry
 from app.infrastructure.knowledge.registry import get_embedding_provider, get_vector_store
 from app.infrastructure.repositories.knowledge_chunk_repository import SqlAlchemyKnowledgeChunkRepository
 from app.infrastructure.repositories.knowledge_source_repository import SqlAlchemyKnowledgeSourceRepository

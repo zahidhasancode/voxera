@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.enums import ApiKeyStatus, IamSessionStatus, IamUserStatus
+from app.core.enums import IamSessionStatus, IamUserStatus
 from app.core.exceptions import CrossOrganizationAccessError, TokenExpiredError
 from app.iam.auth.authentication_service import AuthenticationService
 from app.iam.auth.token_service import TokenService

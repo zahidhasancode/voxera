@@ -2,7 +2,6 @@
 
 from uuid import UUID
 
-from app.infrastructure.workflow.workflow_engine_impl import WorkflowEngineImpl
 from app.workflow.engine.workflow_engine import WorkflowEngine
 from app.workflow.schemas import (
     AdvanceWorkflowRequest,

@@ -1,7 +1,6 @@
 """SQLAlchemy planner repositories."""
 
-from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

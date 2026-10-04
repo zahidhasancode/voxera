@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
-from uuid import UUID
 
 from app.core.enums import IntegrationEntityType, IntegrationSyncMode
 from app.integrations.mappings.field_mapper import field_mapper

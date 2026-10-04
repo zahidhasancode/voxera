@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime, timezone
 from uuid import UUID
 
 from app.core.config import settings
-from app.core.enums import KnowledgeIngestionJobStatus, KnowledgeProcessingStage
 from app.core.logger import get_logger
 from app.database.session import session_scope
 from app.infrastructure.knowledge.factory import build_knowledge_ingestion_service

@@ -207,7 +207,7 @@ class IamServiceImpl:
 
     async def register(self, body: RegisterRequest) -> AuthTokens:
         org = await self.provision_organization(body.organization)
-        user = await self.register_user(
+        await self.register_user(
             org.id,
             body.user,
             actor_id=None,

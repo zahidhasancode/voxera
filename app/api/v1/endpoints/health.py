@@ -1,12 +1,10 @@
 """Health check endpoints — live, ready, and deep diagnostics."""
 
-from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Response, status
 
-from app.core.config import settings
-from app.core.health import APP_VERSION, deep_check, live_check, ready_check
+from app.core.health import deep_check, live_check, ready_check
 from app.streaming.metrics import streaming_metrics
 
 router = APIRouter()

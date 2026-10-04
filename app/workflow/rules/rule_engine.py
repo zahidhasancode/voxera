@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.core.enums import RuleActionType, RuleOperator
+from app.core.enums import RuleOperator
 from app.workflow.schemas import RuleAction, RuleCondition, WorkflowRuleDefinition
 
 

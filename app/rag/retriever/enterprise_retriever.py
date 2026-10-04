@@ -4,7 +4,7 @@ import time
 from uuid import UUID
 
 from app.core.config import settings
-from app.core.enums import AgentStatus, KnowledgeSourceStatus
+from app.core.enums import KnowledgeSourceStatus
 from app.core.exceptions import DatabaseUnavailableError, NotFoundError
 from app.knowledge.embeddings.provider import EmbeddingProvider
 from app.knowledge.repository.chunk_repository import KnowledgeChunkRepository
@@ -14,7 +14,6 @@ from app.rag.cache.base import RetrievalCache
 from app.rag.interfaces.agent_scope import AgentKnowledgeScope
 from app.rag.interfaces.models import (
     MetadataFilterSpec,
-    NormalizedQuery,
     RankedChunk,
     RetrievalRequest,
     RetrievalResponse,

@@ -6,9 +6,9 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.enums import ConversationStatus, PlannerAction, SessionState, ToolBuiltinSlug
+from app.core.enums import PlannerAction, SessionState, ToolBuiltinSlug
 from app.infrastructure.planner.planner_service import PlannerServiceImpl
-from app.memory.schemas import PlannerContext, SessionRead
+from app.memory.schemas import PlannerContext
 from app.planner.models.structured_model import StructuredPlannerModel
 from app.planner.schemas import PlanRequest
 from app.tools.schemas.execution import ToolDefinitionRead

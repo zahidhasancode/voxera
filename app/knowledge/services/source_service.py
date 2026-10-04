@@ -7,7 +7,6 @@ from app.knowledge.schemas.source import (
     KnowledgeReprocessRequest,
     KnowledgeSourceCreate,
     KnowledgeSourceFrontendRead,
-    KnowledgeSourceRead,
     KnowledgeSourceStatusSummary,
     KnowledgeSourceUpdate,
 )

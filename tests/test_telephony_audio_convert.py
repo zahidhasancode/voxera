@@ -1,11 +1,8 @@
 """Unit tests for Twilio μ-law → PCM16 16 kHz conversion."""
 
-import pytest
 
 from app.telephony.audio_convert import (
     PCM16_WIDTH,
-    TARGET_PCM_RATE,
-    TWILIO_MULAW_RATE,
     convert_twilio_audio,
 )
 

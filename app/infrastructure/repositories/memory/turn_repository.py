@@ -5,7 +5,6 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.enums import MemoryRole
 from app.database.models.memory import ConversationTurnModel
 from app.memory.repository import ConversationTurnRepository
 from app.memory.schemas import AppendMessageRequest, TurnRead

@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from app.integrations.schemas.connection import (
-    IntegrationAuditLogRead,
     IntegrationConnectRequest,
     IntegrationConnectResponse,
     IntegrationConnectionRead,

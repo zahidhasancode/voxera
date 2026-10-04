@@ -596,13 +596,6 @@ class SecurityEventSeverity(StrEnum):
     CRITICAL = "critical"
 
 
-class ComplianceFramework(StrEnum):
-    GDPR = "gdpr"
-    HIPAA = "hipaa"
-    SOC2 = "soc2"
-    ISO27001 = "iso27001"
-    PCI_DSS = "pci_dss"
-
 
 # ---------------------------------------------------------------------------
 # Enterprise Integration Platform

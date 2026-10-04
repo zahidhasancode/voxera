@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from app.tools.schemas.execution import ToolExecutionContext, ToolExecutionResult
+from app.tools.schemas.execution import ToolExecutionContext
 
 
 class Tool(ABC):

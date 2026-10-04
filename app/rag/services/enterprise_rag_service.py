@@ -2,7 +2,6 @@
 
 from uuid import UUID
 
-from app.core.config import settings
 from app.core.enums import AgentStatus, KnowledgeSourceStatus
 from app.core.exceptions import NotFoundError
 from app.rag.context.builder import ContextBuilder

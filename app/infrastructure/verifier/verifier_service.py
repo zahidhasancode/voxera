@@ -7,7 +7,6 @@ from uuid import UUID, uuid4
 from app.core.config import settings
 from app.core.enums import IdentityVerificationStatus, WorkingMemoryKey
 from app.infrastructure.repositories.verifier.repositories import (
-    SqlAlchemyVerifierAuditRepository,
     SqlAlchemyVerifierComplianceRepository,
     SqlAlchemyVerifierDecisionRepository,
     SqlAlchemyVerifierPolicyViolationRepository,
