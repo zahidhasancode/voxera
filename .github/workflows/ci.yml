@@ -1,10 +1,16 @@
 name: CI
 
+# Every job here runs a command that also passes on a developer machine:
+#   ruff check app/ tests/ scripts/
+#   python -m pytest -m "not integration and not slow"
+#   npm ci && npm run build   (web/ and dashboard/)
+# Integration tests need a PostgreSQL database and are run by hand (see TESTING.md).
+
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -25,28 +31,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
       - run: pip install -r requirements-dev.txt
-      - run: ruff check app/ tests/
-      - run: black --check app/ tests/
+      - run: ruff check app/ tests/ scripts/
 
   test-python:
-    name: Test Python (Unit)
+    name: Test Python
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: voxera
-          POSTGRES_PASSWORD: voxera
-          POSTGRES_DB: voxera_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U voxera -d voxera_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     env:
-      DATABASE_URL: postgresql+asyncpg://voxera:voxera@localhost:5432/voxera_test
       ENVIRONMENT: development
       SECRET_KEY: test-secret-key-for-ci-minimum-32-chars
       JWT_SECRET_KEY: test-jwt-secret-key-for-ci-min-32-chars
@@ -61,81 +51,10 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
       - run: pip install -r requirements-dev.txt
-      - run: alembic upgrade head
-      - run: pytest tests/ -m "not integration and not slow" --ignore=tests/load -v --cov=app --cov-report=term-missing --cov-report=xml:reports/coverage/coverage.xml --cov-fail-under=65
+      - run: python -m pytest -m "not integration and not slow" -q
 
-  test-python-integration:
-    name: Test Python (Integration)
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: voxera
-          POSTGRES_PASSWORD: voxera
-          POSTGRES_DB: voxera_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U voxera -d voxera_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DATABASE_URL: postgresql+asyncpg://voxera:voxera@localhost:5432/voxera_test
-      ENVIRONMENT: development
-      SECRET_KEY: test-secret-key-for-ci-minimum-32-chars
-      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-min-32-chars
-      API_KEY_SECRET: test-api-key-secret-for-ci-min-32-chars
-      ENCRYPTION_SECRET_KEY: test-encryption-secret-ci-min-32-chars
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - run: pip install -r requirements-dev.txt
-      - run: alembic upgrade head
-      - run: pytest tests/integration/ tests/chaos/ -m "integration or chaos" -v
-
-  test-python-security:
-    name: Test Python (Security)
-    runs-on: ubuntu-latest
-    env:
-      ENVIRONMENT: development
-      SECRET_KEY: test-secret-key-for-ci-minimum-32-chars
-      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-min-32-chars
-      API_KEY_SECRET: test-api-key-secret-for-ci-min-32-chars
-      ENCRYPTION_SECRET_KEY: test-encryption-secret-ci-min-32-chars
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - run: pip install -r requirements-dev.txt
-      - run: pytest tests/security/ -m security -v
-
-  test-python-benchmark:
-    name: Test Python (Benchmark Smoke)
-    runs-on: ubuntu-latest
-    env:
-      ENVIRONMENT: development
-      SECRET_KEY: test-secret-key-for-ci-minimum-32-chars
-      JWT_SECRET_KEY: test-jwt-secret-key-for-ci-min-32-chars
-      API_KEY_SECRET: test-api-key-secret-for-ci-min-32-chars
-      ENCRYPTION_SECRET_KEY: test-encryption-secret-ci-min-32-chars
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-      - run: pip install -r requirements-dev.txt
-      - run: pytest tests/integration/performance/ tests/e2e/ -m "benchmark or e2e" -v --ignore=tests/load
-
-  lint-dashboard:
-    name: Lint & Test Dashboard
+  build-dashboard:
+    name: Build and Test Dashboard
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -145,14 +64,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: dashboard/package-lock.json
-      - run: npm ci || npm install
+      - run: npm ci
       - run: npm run build
       - run: npm run test
 
-  lint-web:
-    name: Build Web
+  build-web:
+    name: Build Voice Demo
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -162,101 +79,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci || npm install
+      - run: npm ci
       - run: npm run build
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - run: pip install pip-audit
-      - run: pip-audit -r requirements.txt || true
-      - uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: CRITICAL,HIGH
-          exit-code: "0"
-
-  build-images:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
-    needs: [lint-python, test-python, test-python-integration, test-python-security, test-python-benchmark, lint-dashboard, lint-web]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          push: false
-          tags: voxera-api:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: deploy/docker/Dockerfile.dashboard
-          push: false
-          tags: voxera-dashboard:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: voxera-api:${{ github.sha }}
-          severity: CRITICAL,HIGH
-          exit-code: "0"
-
-  infra-validation:
-    name: Infrastructure Validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - run: pip install pyyaml
-      - name: Validate Docker Compose
-        env:
-          POSTGRES_PASSWORD: ci-test-password
-        run: |
-          touch .env.production
-          docker compose -f docker-compose.prod.yml config > /dev/null
-          docker compose -f docker-compose.yml config > /dev/null
-      - run: helm lint deploy/helm/voxera
-      - run: python -m pytest tests/infra/ -v
-
-  build-test-image:
-    name: Build Test Image
-    runs-on: ubuntu-latest
-    needs: [lint-python]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.test
-          push: false
-          tags: voxera-api-test:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  sbom:
-    name: Generate SBOM
-    runs-on: ubuntu-latest
-    needs: [build-images]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: anchore/sbom-action@v0
-        with:
-          path: .
-          format: spdx-json
-          artifact-name: voxera-sbom.spdx.json

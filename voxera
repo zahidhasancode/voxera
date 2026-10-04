@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# VOXERA — Vercel deployment for landing page + enterprise dashboard
+# Project: voxera (zahidhasans-projects)
+# Usage: ./voxera deploy [--prod]
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_NAME="voxera"
+
+cmd="${1:-deploy}"
+prod_flag=""
+
+if [[ "${2:-}" == "--prod" ]] || [[ "${1:-}" == "--prod" ]]; then
+  prod_flag="--prod"
+fi
+
+if [[ "${cmd}" != "deploy" && "${cmd}" != "--prod" ]]; then
+  echo "Usage: ./voxera deploy [--prod]"
+  exit 1
+fi
+
+if ! command -v vercel >/dev/null 2>&1; then
+  echo "Error: Vercel CLI not installed. Run: npm i -g vercel"
+  exit 1
+fi
+
+cd "${ROOT}"
+
+echo "Deploying VOXERA (landing + dashboard) to Vercel project: ${PROJECT_NAME}"
+vercel deploy --yes ${prod_flag}
