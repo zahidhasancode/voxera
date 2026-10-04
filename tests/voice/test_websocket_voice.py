@@ -125,4 +125,8 @@ def test_missing_providers_give_a_clear_error_and_release_the_connection(client,
     with client.websocket_connect(VOICE_WS) as ws:
         err = ws.receive_json()
         assert err["type"] == "error" and err["code"] == "voice_providers_unavailable"
+    # The server releases the connection in its own thread, just after the client side closes.
+    deadline = time.monotonic() + 2.0
+    while len(ws_connection_manager.active_connections) != before and time.monotonic() < deadline:
+        time.sleep(0.01)
     assert len(ws_connection_manager.active_connections) == before
