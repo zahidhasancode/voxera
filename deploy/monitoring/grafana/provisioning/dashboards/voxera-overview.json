@@ -41,7 +41,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "voxera_voice_latency_ms",
+          "expr": "voxera_voice_first_audio_ms{quantile=\"0.5\"}",
           "legendFormat": "voice ms"
         }
       ]

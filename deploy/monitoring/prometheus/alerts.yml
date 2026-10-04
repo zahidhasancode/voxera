@@ -20,7 +20,7 @@ groups:
           description: P95 latency exceeds 500ms for 10 minutes.
 
       - alert: VoxeraVoiceLatencyHigh
-        expr: voxera_voice_latency_ms > 400
+        expr: voxera_voice_first_audio_ms{quantile="0.95"} > 2000
         for: 5m
         labels:
           severity: critical

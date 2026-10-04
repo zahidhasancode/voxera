@@ -48,6 +48,9 @@ async def lifespan(app: FastAPI):
         drain_timeout_seconds=settings.SHUTDOWN_DRAIN_TIMEOUT_SECONDS
     )
     await shutdown_manager.close_websockets()
+    from app.voice.http import close_http_client
+
+    await close_http_client()
     await close_database()
     logger.info("VOXERA backend shutdown complete")
 

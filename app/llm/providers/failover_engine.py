@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, Sequence
 
 from app.core.logger import get_logger
 from app.llm.streaming_engine import LLMGenerationMetrics, StreamToken, StreamingLLMEngine
@@ -30,21 +30,29 @@ class FailoverStreamingLLMEngine(StreamingLLMEngine):
         *,
         utterance_id: Optional[str] = None,
         conversation_id: Optional[str] = None,
+        history: Optional[Sequence[dict]] = None,
     ) -> AsyncIterator[StreamToken]:
         for engine in (self._primary, self._secondary):
             if engine is None:
                 continue
+            emitted = 0
             try:
                 self._active = engine
                 async for token in engine.stream(
                     prompt,
                     utterance_id=utterance_id,
                     conversation_id=conversation_id,
+                    history=history,
                 ):
+                    emitted += 1
                     yield token
                 self._last_metrics = engine.last_metrics()
                 return
             except Exception as exc:
+                if emitted:
+                    # Part of the answer has already been streamed (and possibly spoken);
+                    # starting again on another provider would repeat it.
+                    raise
                 logger.warning(
                     "LLM provider failed, trying failover",
                     extra_fields={

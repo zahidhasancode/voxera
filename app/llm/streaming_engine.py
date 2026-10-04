@@ -5,10 +5,11 @@ Designed for pluggable backends: Mock (default), OpenAI Realtime, vLLM, Triton I
 
 import asyncio
 import random
+import re
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import AsyncIterator, Optional
+from dataclasses import dataclass
+from typing import AsyncIterator, Optional, Sequence
 
 from app.core.logger import get_logger
 
@@ -55,6 +56,7 @@ class StreamingLLMEngine(ABC):
         *,
         utterance_id: Optional[str] = None,
         conversation_id: Optional[str] = None,
+        history: Optional[Sequence[dict]] = None,
     ) -> AsyncIterator[StreamToken]:
         """Stream tokens for the given prompt.
 
@@ -94,7 +96,7 @@ class MockStreamingLLMEngine(StreamingLLMEngine):
         self,
         min_token_delay_ms: float = 20.0,
         max_token_delay_ms: float = 40.0,
-        mock_response_template: str = "You said: \"{prompt}\". Here is a concise response.",
+        mock_response_template: str = "Sure, one moment please. You said: \"{prompt}\". Here is a concise response.",
     ):
         """Initialize mock engine.
 
@@ -114,12 +116,12 @@ class MockStreamingLLMEngine(StreamingLLMEngine):
         *,
         utterance_id: Optional[str] = None,
         conversation_id: Optional[str] = None,
+        history: Optional[Sequence[dict]] = None,
     ) -> AsyncIterator[StreamToken]:
         """Stream mock tokens with 20–40 ms delay per token."""
         text = self.mock_response_template.format(prompt=prompt or "(silence)")
-        tokens = text.replace(".", " . ").replace(",", " , ").split()
-        if not tokens:
-            tokens = ["(no", "input)"]
+        # Word-sized tokens that keep their punctuation and spacing, like a real token stream.
+        tokens = re.findall(r"\S+\s*", text) or ["(no input)"]
 
         start = time.monotonic()
         first_token_time: Optional[float] = None
@@ -137,7 +139,7 @@ class MockStreamingLLMEngine(StreamingLLMEngine):
                     first_token_time = time.monotonic()
 
                 token_count += 1
-                yield StreamToken(token=t + (" " if i < len(tokens) - 1 else ""), token_index=i)
+                yield StreamToken(token=t, token_index=i)
 
         except asyncio.CancelledError:
             logger.info(

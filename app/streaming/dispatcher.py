@@ -1,4 +1,4 @@
-"""Streaming dispatcher for constant-cadence audio frame processing."""
+"""Streaming dispatcher: forwards inbound audio frames to their consumers."""
 
 import asyncio
 import time
@@ -6,10 +6,13 @@ from typing import Awaitable, Callable, Optional
 
 from app.core.logger import get_logger
 
-from app.streaming.audio_queue import AudioFrameQueue, FrameWithId
+from app.streaming.audio_queue import AudioFrameQueue
 from app.streaming.metrics import StreamingMetrics
 
 logger = get_logger(__name__)
+
+# How long to wait before looking again when the queue is empty
+IDLE_POLL_SEC = 0.002
 
 # Frame interval in seconds (20ms)
 FRAME_INTERVAL_MS = 20
@@ -17,7 +20,7 @@ FRAME_INTERVAL_SEC = FRAME_INTERVAL_MS / 1000.0
 
 
 class StreamingDispatcher:
-    """Dispatches audio frames at constant 20ms cadence.
+    """Dispatches audio frames in arrival order, without adding delay.
 
     This dispatcher maintains a constant frame rate by pulling frames
     from the queue every 20ms and passing them to a callback function.
@@ -101,60 +104,44 @@ class StreamingDispatcher:
         )
 
     async def _dispatch_loop(self) -> None:
-        """Main dispatch loop - pulls frames every 20ms.
+        """Main dispatch loop: forward every queued frame as soon as it arrives.
 
-        Maintains constant cadence by calculating time since last dispatch
-        and sleeping to maintain 20ms intervals.
+        Frames arrive from the client at their own real-time cadence (one per
+        20 ms), so the dispatcher must not add a timer of its own: a loop that
+        takes one frame per 20 ms tick can never catch up after the smallest
+        delay, and the queue slowly fills until it adds its full length (about
+        one second) to every turn and starts dropping audio. The loop drains
+        whatever is waiting and only idles when the queue is empty.
         """
         while self._running:
-            loop_start = time.time()
-
-            # Pull frame from queue (non-blocking)
             frame_with_id = await self.queue.dequeue()
 
-            if frame_with_id is not None:
-                # Dispatch frame via callback
-                try:
-                    await self.callback(frame_with_id.frame)
-                    self.frames_dispatched += 1
+            if frame_with_id is None:
+                await asyncio.sleep(IDLE_POLL_SEC)
+                continue
 
-                    # Record dispatch in metrics
-                    if self._metrics and frame_with_id.frame_id >= 0:
-                        self._metrics.record_dispatch(frame_with_id.frame_id)
+            try:
+                await self.callback(frame_with_id.frame)
+                self.frames_dispatched += 1
 
-                    # Send frame to STT consumer (non-blocking)
-                    if self._stt_consumer and self._stt_consumer.is_running():
-                        # Non-blocking enqueue - don't wait if queue is full
-                        asyncio.create_task(
-                            self._stt_consumer.process_frame(frame_with_id.frame)
-                        )
+                # Record dispatch in metrics
+                if self._metrics and frame_with_id.frame_id >= 0:
+                    self._metrics.record_dispatch(frame_with_id.frame_id)
 
-                except Exception as e:
-                    logger.error(
-                        "Error in frame callback",
-                        extra_fields={"error": str(e)},
-                        exc_info=True,
-                    )
-            else:
-                # Queue empty - log periodically
-                if self.frames_dispatched % 100 == 0:  # Log every 100 frames
-                    logger.debug(
-                        "Dispatcher waiting for frames",
-                        extra_fields={
-                            "queue_depth": self.queue.size(),
-                            "frames_dispatched": self.frames_dispatched,
-                        },
-                    )
+                # Hand the frame to the STT consumer (non-blocking put; keeps frame order)
+                if self._stt_consumer and self._stt_consumer.is_running():
+                    await self._stt_consumer.process_frame(frame_with_id.frame)
 
-            # Calculate sleep time to maintain 20ms cadence
-            loop_duration = time.time() - loop_start
-            sleep_time = max(0.0, FRAME_INTERVAL_SEC - loop_duration)
+            except Exception as e:
+                logger.error(
+                    "Error in frame callback",
+                    extra_fields={"error": str(e)},
+                    exc_info=True,
+                )
 
-            if sleep_time > 0:
-                await asyncio.sleep(sleep_time)
-
-            # Track dispatch timing
             self._last_dispatch_time = time.time()
+            # Let the WebSocket receive loop run between frames.
+            await asyncio.sleep(0)
 
     def register_stt_consumer(self, stt_consumer: object) -> None:
         """Register STT consumer to receive audio frames.

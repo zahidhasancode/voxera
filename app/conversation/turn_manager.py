@@ -104,17 +104,23 @@ class TurnManager:
                         "transcript_length": len(event.transcript),
                     },
                 )
-            else:
-                # Final transcript but we weren't tracking a user turn
-                # This might happen if we missed the partial transcripts
-                logger.debug(
-                    "Final transcript received but no active user turn",
-                    extra_fields={
-                        "conversation_id": str(self.state.conversation_id),
-                        "utterance_id": event.utterance_id,
-                        "transcript": event.transcript,
-                    },
-                )
+            elif event.transcript.strip():
+                # A final transcript with no partial before it (short utterances often
+                # arrive this way). Treat it as a whole turn instead of dropping it.
+                if self.state.is_system_speaking:
+                    await self.handle_interruption()
+                self.state.start_user_turn(event.utterance_id)
+                if self.on_user_turn_started:
+                    await self._call_callback(
+                        self.on_user_turn_started,
+                        UserTurnStarted(utterance_id=event.utterance_id),
+                    )
+                self.state.complete_user_turn()
+                if self.on_user_turn_completed:
+                    await self._call_callback(
+                        self.on_user_turn_completed,
+                        UserTurnCompleted(utterance_id=event.utterance_id, transcript=event.transcript),
+                    )
 
     async def handle_interruption(self) -> None:
         """Handle user interruption (barge-in).

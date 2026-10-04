@@ -39,6 +39,9 @@ class DeepgramStreamingSTTEngine(StreamingSTTEngine):
         self._utterance_id: str | None = None
         self._lock = asyncio.Lock()
         self._connected = False
+        # Deepgram finalizes speech segment by segment while the user is still talking.
+        # Finished segments are collected here until the speaker actually stops.
+        self._segments: list[str] = []
 
     async def validate_connection(self) -> None:
         await self._connect()
@@ -74,6 +77,7 @@ class DeepgramStreamingSTTEngine(StreamingSTTEngine):
 
     async def reset(self) -> None:
         self._utterance_id = None
+        self._segments.clear()
         while not self._event_queue.empty():
             try:
                 self._event_queue.get_nowait()
@@ -113,7 +117,8 @@ class DeepgramStreamingSTTEngine(StreamingSTTEngine):
                     "channels": "1",
                     "interim_results": "true",
                     "punctuate": "true",
-                    "endpointing": "300",
+                    "endpointing": str(settings.DEEPGRAM_ENDPOINTING_MS),
+                    "utterance_end_ms": str(settings.DEEPGRAM_UTTERANCE_END_MS),
                 }
             )
             url = f"wss://api.deepgram.com/v1/listen?{params}"
@@ -144,20 +149,52 @@ class DeepgramStreamingSTTEngine(StreamingSTTEngine):
             logger.error("Deepgram receive loop failed", extra_fields={"error": str(exc)})
 
     def _parse_result(self, payload: dict) -> TranscriptEvent | None:
+        """Turn one Deepgram message into a transcript event (or nothing).
+
+        `is_final` only means "this segment will not change"; a long sentence
+        produces several of them. `speech_final` (or the `UtteranceEnd` fallback
+        message) means the speaker stopped, and only that ends the user's turn.
+        """
+        utterance_id = self._utterance_id or str(uuid.uuid4())
+        if payload.get("type") == "UtteranceEnd":
+            if not self._segments:
+                return None
+            return self._final_event(utterance_id, confidence=1.0)
+
         channel = payload.get("channel") or {}
         alternatives = channel.get("alternatives") or []
         if not alternatives:
             return None
         transcript = (alternatives[0].get("transcript") or "").strip()
+        confidence = min(1.0, max(0.0, float(alternatives[0].get("confidence") or 0.0)))
+        segment_final = bool(payload.get("is_final"))
+        speech_final = bool(payload.get("speech_final"))
+
+        if segment_final and transcript:
+            self._segments.append(transcript)
+        if speech_final:
+            if not self._segments:
+                return None
+            return self._final_event(utterance_id, confidence=confidence)
         if not transcript:
             return None
-        is_final = bool(payload.get("is_final") or payload.get("speech_final"))
-        utterance_id = self._utterance_id or str(uuid.uuid4())
-        confidence = float(alternatives[0].get("confidence") or 0.0)
+        text = " ".join(self._segments) if segment_final else " ".join([*self._segments, transcript])
         return TranscriptEvent(
-            type=TranscriptType.FINAL if is_final else TranscriptType.PARTIAL,
+            type=TranscriptType.PARTIAL,
             utterance_id=utterance_id,
-            transcript=transcript,
+            transcript=text,
+            confidence=confidence,
+        )
+
+    def _final_event(self, utterance_id: str, *, confidence: float) -> TranscriptEvent:
+        text = " ".join(self._segments)
+        self._segments.clear()
+        # The next utterance gets a new ID.
+        self._utterance_id = None
+        return TranscriptEvent(
+            type=TranscriptType.FINAL,
+            utterance_id=utterance_id,
+            transcript=text,
             confidence=confidence,
         )
 

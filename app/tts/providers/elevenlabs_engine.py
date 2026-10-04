@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.logger import get_logger
 from app.tts.streaming_engine import TTSAudioMetrics, StreamingTTSEngine
 from app.voice.audio import chunk_pcm_bytes
+from app.voice.http import get_http_client
 
 logger = get_logger(__name__)
 
@@ -52,31 +53,32 @@ class ElevenLabsStreamingTTSEngine(StreamingTTSEngine):
         payload = {"text": text, "model_id": self._model}
         buffer = bytearray()
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                async with client.stream(
-                    "POST",
-                    url,
-                    headers={"xi-api-key": self._api_key, "Content-Type": "application/json"},
-                    json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    async for chunk in response.aiter_bytes():
-                        if not chunk:
-                            continue
-                        buffer.extend(chunk)
-                        frames, buffer = chunk_pcm_bytes(bytes(buffer), self._frame_bytes)
-                        buffer = bytearray(buffer)
-                        for frame in frames:
-                            if first_audio_time is None:
-                                first_audio_time = time.monotonic()
-                            frame_count += 1
-                            yield frame
-                    if buffer:
-                        padded = bytes(buffer).ljust(self._frame_bytes, b"\x00")
+            client = get_http_client()
+            async with client.stream(
+                "POST",
+                url,
+                headers={"xi-api-key": self._api_key, "Content-Type": "application/json"},
+                json=payload,
+                timeout=60.0,
+            ) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes():
+                    if not chunk:
+                        continue
+                    buffer.extend(chunk)
+                    frames, buffer = chunk_pcm_bytes(bytes(buffer), self._frame_bytes)
+                    buffer = bytearray(buffer)
+                    for frame in frames:
                         if first_audio_time is None:
                             first_audio_time = time.monotonic()
                         frame_count += 1
-                        yield padded[: self._frame_bytes]
+                        yield frame
+                if buffer:
+                    padded = bytes(buffer).ljust(self._frame_bytes, b"\x00")
+                    if first_audio_time is None:
+                        first_audio_time = time.monotonic()
+                    frame_count += 1
+                    yield padded[: self._frame_bytes]
         except asyncio.CancelledError:
             logger.info(
                 "ElevenLabs TTS cancelled",
