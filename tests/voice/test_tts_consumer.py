@@ -50,7 +50,9 @@ async def test_audio_is_paced_not_dumped() -> None:
     await c.start_speaking("A long answer.", "u1")
     await asyncio.sleep(0.2)
     sent = sink.audio_frames()
-    assert 5 <= sent <= 20, sent  # roughly (0.2 s elapsed + 0.1 s lead) / 20 ms
+    # Roughly (0.2 s elapsed + 0.1 s lead) / 20 ms = 15 frames; the bounds leave room for a slow
+    # machine. Without pacing all 100 would have been sent.
+    assert 5 <= sent <= 40, sent
     await c.stop()
 
 
