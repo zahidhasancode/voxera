@@ -536,8 +536,8 @@ See **docs/demo.md** for a live demo script and investor-friendly talking points
 
 ## License and Contributions
 
-- **License:** Proprietary — VOXERA.  
-- **Contributions:** Internal only unless otherwise agreed. For external contributions, open an issue to discuss scope and licensing.
+- **License:** MIT (see `LICENSE`).  
+- **Contributions:** Issues and pull requests are welcome.
 
 ---
 

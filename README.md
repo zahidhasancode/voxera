@@ -158,4 +158,4 @@ Deepgram end-of-turn logic, the 24 kHz → 16 kHz resampler and the WebSocket en
 
 ## Licence
 
-See `LICENSE`.
+MIT. See `LICENSE`.

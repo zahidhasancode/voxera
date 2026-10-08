@@ -133,4 +133,4 @@ src/
 
 ## License
 
-Proprietary — Voxera.
+MIT. See `LICENSE` in the repository root.
