@@ -21,7 +21,7 @@ certifications and no hosted service.
 | Barge-in: user speech stops the reply while it is being generated **and while it is playing** | Working, tested |
 | Sentence-by-sentence speech: TTS starts on the first finished sentence, not the full answer | Working, tested |
 | Conversation history sent to the LLM (last `VOICE_HISTORY_TURNS` turns) | Working, tested |
-| Provider adapters: Deepgram (STT); OpenAI, Anthropic, Groq, Azure OpenAI (LLM); ElevenLabs, OpenAI (TTS) | Implemented. **Not yet run against the live services in this revision** |
+| Provider adapters: Deepgram, Amazon Transcribe (STT); OpenAI, Anthropic, Groq, xAI, Azure OpenAI, Amazon Bedrock (LLM); ElevenLabs, OpenAI, Amazon Polly (TTS) | Deepgram, Amazon Transcribe and Amazon Polly **measured against the live services** (results below). Amazon Bedrock implemented and unit-tested; the live run is waiting for AWS account verification. The others are implemented, not yet run live |
 | Built-in mock engines for development (no keys needed) | Working. The mock recogniser invents words; the mock voice is a tone |
 | Browser demo with live microphone and playback (`web/`) | Builds; text path checked in a browser. **Microphone path not yet tested by a person** |
 | Phone calls through Twilio Media Streams (`app/telephony/`) | Implemented, unit-tested with fakes. **Never run against Twilio** |
@@ -54,10 +54,29 @@ silence before ending a turn (that is most of the first row), the mock LLM emits
 one slow turn in this run set the 95th percentile). The inbound queue no longer polls: the
 dispatcher sleeps on an event and wakes as soon as a frame arrives.
 
-**Results with real providers: not measured yet.** Add keys (below), run the same command, and put
-the numbers here. Expect the end-of-speech figure to be dominated by the recogniser's end-of-turn
-wait (`DEEPGRAM_ENDPOINTING_MS`, default 300), the LLM's time to first token and the TTS provider's
-time to first audio.
+**Results with real providers** (laptop on home Wi-Fi in Barcelona, server on the same laptop;
+raw results in [`benchmarks/`](benchmarks/)). The language model is still the mock in these runs,
+so the "first reply audio" rows do not yet include a real LLM's time to first token.
+
+| Measure (median / 95th percentile) | Deepgram STT (29 Oct) | Amazon Transcribe + Amazon Polly (30 Oct, eu-west-1) |
+|---|---|---|
+| End of speech → final transcript | **634 / 702 ms** | **711 / 761 ms** |
+| End of speech → first reply audio | 786 / 862 ms (mock voice) | **943 / 1102 ms** (real Polly voice) |
+| Final transcript → first reply audio (server-side) | 152 / 170 ms (mock voice) | 228 / 306 ms (Polly) |
+| Caller starts talking → reply stopped (barge-in) | **445 / 472 ms** | **731 / 759 ms** |
+| Audio frames received after the stop signal | 0 | 0 |
+
+20 turns each; 12 turns for barge-in. What the numbers show:
+
+- About 300 ms of "end of speech → final transcript" is the deliberate end-of-turn silence wait;
+  the rest is recognition plus the network round trip from Barcelona.
+- Barge-in is detected from the recogniser's first partial result, so it follows the recogniser:
+  Deepgram's first words arrive sooner than Transcribe's, which makes interruptions about 0.3 s
+  faster.
+- Polly adds roughly 200 ms from the first finished sentence to the first audio frame.
+
+Not measured yet: a real LLM in the loop (Amazon Bedrock is waiting for account verification) and
+ElevenLabs.
 
 The server also reports each turn to the client (`turn_metrics`) and exposes rolling percentiles at
 `/api/v1/metrics` (`voxera_voice_first_audio_ms`).
@@ -92,11 +111,22 @@ Set these in `.env`:
 ```
 STT_PROVIDER=deepgram
 DEEPGRAM_API_KEY=...
-LLM_PROVIDER=groq            # or openai, anthropic, azure_openai
+LLM_PROVIDER=groq            # or openai, anthropic, azure_openai, xai, bedrock
 GROQ_API_KEY=...
-TTS_PROVIDER=elevenlabs      # or openai_audio
+TTS_PROVIDER=elevenlabs      # or openai_audio, amazon_polly
 ELEVENLABS_API_KEY=...
 VOICE_TTS_VOICE_ID=...
+```
+
+All-AWS setup (no API keys; credentials come from the standard AWS chain, e.g. `AWS_PROFILE`):
+
+```
+STT_PROVIDER=amazon_transcribe
+LLM_PROVIDER=bedrock
+TTS_PROVIDER=amazon_polly
+AWS_VOICE_REGION=eu-west-1
+BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
+POLLY_VOICE_ID=Joanna
 ```
 
 Mock engines are never used when `ENVIRONMENT=production`; a missing provider is an error there.
@@ -141,7 +171,7 @@ production.
 ## Tests
 
 ```bash
-python -m pytest -m "not integration and not slow"     # 136 tests, no network, no database
+python -m pytest -m "not integration and not slow"     # 147 tests, no network, no database
 ruff check app/ tests/ scripts/
 ```
 

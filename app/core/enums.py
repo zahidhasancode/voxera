@@ -131,6 +131,8 @@ class LLMProviderType(StrEnum):
     GEMINI = "gemini"
     AZURE_OPENAI = "azure_openai"
     GROQ = "groq"
+    XAI = "xai"
+    BEDROCK = "bedrock"
 
 
 class TTSProviderType(StrEnum):

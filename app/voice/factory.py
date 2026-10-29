@@ -5,14 +5,18 @@ from __future__ import annotations
 from app.core.config import settings
 from app.core.enums import LLMProviderType, STTProviderType, TTSProviderType
 from app.llm.providers.anthropic_engine import AnthropicStreamingLLMEngine
+from app.llm.providers.bedrock_engine import BedrockStreamingLLMEngine
 from app.llm.providers.failover_engine import FailoverStreamingLLMEngine
 from app.llm.providers.groq_engine import GroqStreamingLLMEngine
+from app.llm.providers.xai_engine import XAIStreamingLLMEngine
 from app.llm.providers.openai_engine import OpenAIStreamingLLMEngine
 from app.llm.streaming_engine import MockStreamingLLMEngine, StreamingLLMEngine
 from app.stt.engine import MockSTTEngine, StreamingSTTEngine
+from app.stt.providers.aws_transcribe_engine import AmazonTranscribeSTTEngine
 from app.stt.providers.deepgram_engine import DeepgramStreamingSTTEngine
 from app.tts.providers.elevenlabs_engine import ElevenLabsStreamingTTSEngine
 from app.tts.providers.openai_tts_engine import OpenAIStreamingTTSEngine
+from app.tts.providers.polly_engine import PollyStreamingTTSEngine
 from app.tts.streaming_engine import MockStreamingTTSEngine, StreamingTTSEngine
 
 MOCK = "mock"
@@ -29,6 +33,9 @@ def build_stt_engine(*, partial_interval: int = 1) -> StreamingSTTEngine:
         if not settings.DEEPGRAM_API_KEY:
             raise ValueError("DEEPGRAM_API_KEY is required for Deepgram STT")
         return DeepgramStreamingSTTEngine(api_key=settings.DEEPGRAM_API_KEY)
+    if provider_id == STTProviderType.AMAZON_TRANSCRIBE:
+        # Credentials come from the standard AWS chain (env, AWS_PROFILE, instance role).
+        return AmazonTranscribeSTTEngine()
     raise ValueError(f"Unsupported STT provider: {provider_id}")
 
 
@@ -72,6 +79,12 @@ def _build_single_llm(provider_id: LLMProviderType) -> StreamingLLMEngine:
         if not settings.GROQ_API_KEY:
             raise ValueError("GROQ_API_KEY is required")
         return GroqStreamingLLMEngine(api_key=settings.GROQ_API_KEY)
+    if provider_id == LLMProviderType.XAI:
+        if not settings.XAI_API_KEY:
+            raise ValueError("XAI_API_KEY is required")
+        return XAIStreamingLLMEngine(api_key=settings.XAI_API_KEY)
+    if provider_id == LLMProviderType.BEDROCK:
+        return BedrockStreamingLLMEngine()
     if provider_id == LLMProviderType.GEMINI:
         raise ValueError("Gemini voice LLM provider is not yet implemented")
     raise ValueError(f"Unsupported LLM provider: {provider_id}")
@@ -97,6 +110,9 @@ def build_tts_engine(*, voice_id: str | None = None) -> StreamingTTSEngine:
         if not api_key:
             raise ValueError("VOICE_OPENAI_API_KEY or OPENAI_API_KEY is required")
         return OpenAIStreamingTTSEngine(api_key=api_key, voice=selected_voice)
+    if provider_id == TTSProviderType.AMAZON_POLLY:
+        # VOICE_TTS_VOICE_ID is provider specific; Polly uses POLLY_VOICE_ID unless a voice is passed.
+        return PollyStreamingTTSEngine(voice_id=voice_id)
     raise ValueError(f"Unsupported TTS provider: {provider_id}")
 
 

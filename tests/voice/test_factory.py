@@ -32,3 +32,22 @@ def test_build_tts_elevenlabs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("app.voice.factory.settings.VOICE_TTS_VOICE_ID", "voice123")
     engine = build_tts_engine()
     assert engine.__class__.__name__ == "ElevenLabsStreamingTTSEngine"
+
+
+def test_build_llm_xai_requires_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.voice.factory import build_llm_engine
+
+    monkeypatch.setattr("app.voice.factory.settings.LLM_PROVIDER", LLMProviderType.XAI)
+    monkeypatch.setattr("app.voice.factory.settings.XAI_API_KEY", None)
+    with pytest.raises(ValueError, match="XAI_API_KEY"):
+        build_llm_engine()
+
+
+def test_build_llm_xai_uses_xai_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.voice.factory import build_llm_engine
+
+    monkeypatch.setattr("app.voice.factory.settings.LLM_PROVIDER", LLMProviderType.XAI)
+    monkeypatch.setattr("app.voice.factory.settings.XAI_API_KEY", "test-key")
+    engine = build_llm_engine()
+    assert engine.__class__.__name__ == "XAIStreamingLLMEngine"
+    assert "api.x.ai" in str(vars(engine))

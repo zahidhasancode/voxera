@@ -16,3 +16,7 @@ pypdf==4.0.1
 python-docx==1.1.0
 beautifulsoup4==4.12.3
 jsonschema==4.21.1
+
+# AWS voice providers (Amazon Transcribe, Bedrock, Polly)
+boto3==1.35.99
+amazon-transcribe==0.6.2

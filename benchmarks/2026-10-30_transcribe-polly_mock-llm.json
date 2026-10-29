@@ -1,0 +1,310 @@
+{
+  "providers": {
+    "stt": "amazon_transcribe",
+    "llm": "mock",
+    "tts": "amazon_polly"
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "ae2fd408-9cb3-4990-bd82-08180c9db885",
+        "transcript_final_to_llm_first_token_ms": 19.6,
+        "transcript_final_to_first_segment_ms": 125.4,
+        "transcript_final_to_first_audio_ms": 420.3,
+        "llm_first_token_to_first_audio_ms": 400.7,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 680.3,
+      "end_of_speech_to_first_llm_token_ms": 699.8,
+      "end_of_speech_to_first_audio_ms": 1101.7
+    },
+    {
+      "turn": 2,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "52d7158e-b215-4ba6-b3d6-f2e6a0158695",
+        "transcript_final_to_llm_first_token_ms": 36.9,
+        "transcript_final_to_first_segment_ms": 127.8,
+        "transcript_final_to_first_audio_ms": 249.3,
+        "llm_first_token_to_first_audio_ms": 212.3,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 702.0,
+      "end_of_speech_to_first_llm_token_ms": 738.9,
+      "end_of_speech_to_first_audio_ms": 952.1
+    },
+    {
+      "turn": 3,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "a8a742f2-beb4-45ac-acd7-9b985b775936",
+        "transcript_final_to_llm_first_token_ms": 34.4,
+        "transcript_final_to_first_segment_ms": 128.1,
+        "transcript_final_to_first_audio_ms": 222.5,
+        "llm_first_token_to_first_audio_ms": 188.1,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 720.9,
+      "end_of_speech_to_first_llm_token_ms": 755.3,
+      "end_of_speech_to_first_audio_ms": 944.3
+    },
+    {
+      "turn": 4,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "685f3041-491b-4492-8b41-64702732e8a9",
+        "transcript_final_to_llm_first_token_ms": 22.7,
+        "transcript_final_to_first_segment_ms": 122.9,
+        "transcript_final_to_first_audio_ms": 235.6,
+        "llm_first_token_to_first_audio_ms": 212.9,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 742.0,
+      "end_of_speech_to_first_llm_token_ms": 764.5,
+      "end_of_speech_to_first_audio_ms": 978.4
+    },
+    {
+      "turn": 5,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "1de19f32-3046-46f0-a2cd-514983e3fe0a",
+        "transcript_final_to_llm_first_token_ms": 33.0,
+        "transcript_final_to_first_segment_ms": 125.1,
+        "transcript_final_to_first_audio_ms": 233.5,
+        "llm_first_token_to_first_audio_ms": 200.4,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 741.6,
+      "end_of_speech_to_first_llm_token_ms": 774.6,
+      "end_of_speech_to_first_audio_ms": 976.1
+    },
+    {
+      "turn": 6,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "096d4692-89ff-492b-81a5-531e41265d59",
+        "transcript_final_to_llm_first_token_ms": 21.8,
+        "transcript_final_to_first_segment_ms": 108.5,
+        "transcript_final_to_first_audio_ms": 209.1,
+        "llm_first_token_to_first_audio_ms": 187.3,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 700.0,
+      "end_of_speech_to_first_llm_token_ms": 721.8,
+      "end_of_speech_to_first_audio_ms": 910.0
+    },
+    {
+      "turn": 7,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "6e99bb62-4330-4652-bfd5-87e51efa6ad4",
+        "transcript_final_to_llm_first_token_ms": 23.5,
+        "transcript_final_to_first_segment_ms": 101.9,
+        "transcript_final_to_first_audio_ms": 188.3,
+        "llm_first_token_to_first_audio_ms": 164.8,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 640.7,
+      "end_of_speech_to_first_llm_token_ms": 664.3,
+      "end_of_speech_to_first_audio_ms": 829.9
+    },
+    {
+      "turn": 8,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "a49b5e0d-1cad-403d-a140-cd8a150c1e82",
+        "transcript_final_to_llm_first_token_ms": 25.5,
+        "transcript_final_to_first_segment_ms": 126.7,
+        "transcript_final_to_first_audio_ms": 246.8,
+        "llm_first_token_to_first_audio_ms": 221.3,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 741.1,
+      "end_of_speech_to_first_llm_token_ms": 766.6,
+      "end_of_speech_to_first_audio_ms": 988.9
+    },
+    {
+      "turn": 9,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "ae640256-4648-41d5-89fb-4c293e3cfa2d",
+        "transcript_final_to_llm_first_token_ms": 34.0,
+        "transcript_final_to_first_segment_ms": 125.7,
+        "transcript_final_to_first_audio_ms": 219.6,
+        "llm_first_token_to_first_audio_ms": 185.6,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 720.9,
+      "end_of_speech_to_first_llm_token_ms": 757.7,
+      "end_of_speech_to_first_audio_ms": 941.6
+    },
+    {
+      "turn": 10,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "4c8b06e8-300e-43bc-8638-e8701eb94072",
+        "transcript_final_to_llm_first_token_ms": 24.1,
+        "transcript_final_to_first_segment_ms": 114.5,
+        "transcript_final_to_first_audio_ms": 220.3,
+        "llm_first_token_to_first_audio_ms": 196.2,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 721.1,
+      "end_of_speech_to_first_llm_token_ms": 745.2,
+      "end_of_speech_to_first_audio_ms": 942.2
+    },
+    {
+      "turn": 11,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "ea44dab8-e8ae-44f1-b807-68ea34fd8172",
+        "transcript_final_to_llm_first_token_ms": 31.6,
+        "transcript_final_to_first_segment_ms": 115.9,
+        "transcript_final_to_first_audio_ms": 215.1,
+        "llm_first_token_to_first_audio_ms": 183.4,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 669.2,
+      "end_of_speech_to_first_llm_token_ms": 700.7,
+      "end_of_speech_to_first_audio_ms": 884.8
+    },
+    {
+      "turn": 12,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "82a8d07e-8939-4d7a-be69-651e2c6a2ba6",
+        "transcript_final_to_llm_first_token_ms": 39.3,
+        "transcript_final_to_first_segment_ms": 126.0,
+        "transcript_final_to_first_audio_ms": 235.6,
+        "llm_first_token_to_first_audio_ms": 196.2,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 679.9,
+      "end_of_speech_to_first_llm_token_ms": 719.2,
+      "end_of_speech_to_first_audio_ms": 916.3
+    },
+    {
+      "turn": 13,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "d05379c1-4548-4b99-a092-d89756d02147",
+        "transcript_final_to_llm_first_token_ms": 37.8,
+        "transcript_final_to_first_segment_ms": 130.3,
+        "transcript_final_to_first_audio_ms": 216.2,
+        "llm_first_token_to_first_audio_ms": 178.4,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 659.8,
+      "end_of_speech_to_first_llm_token_ms": 697.5,
+      "end_of_speech_to_first_audio_ms": 876.9
+    },
+    {
+      "turn": 14,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "e461dd22-eb9a-4cb4-931d-f29eb105a459",
+        "transcript_final_to_llm_first_token_ms": 25.8,
+        "transcript_final_to_first_segment_ms": 111.5,
+        "transcript_final_to_first_audio_ms": 211.8,
+        "llm_first_token_to_first_audio_ms": 185.9,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 961.0,
+      "end_of_speech_to_first_llm_token_ms": 986.8,
+      "end_of_speech_to_first_audio_ms": 1173.8
+    },
+    {
+      "turn": 15,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "b70d9c81-86e9-4617-a2fe-3a6b33420d57",
+        "transcript_final_to_llm_first_token_ms": 28.7,
+        "transcript_final_to_first_segment_ms": 127.8,
+        "transcript_final_to_first_audio_ms": 233.1,
+        "llm_first_token_to_first_audio_ms": 204.4,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 701.7,
+      "end_of_speech_to_first_llm_token_ms": 730.4,
+      "end_of_speech_to_first_audio_ms": 935.6
+    },
+    {
+      "turn": 16,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "5c95ff5f-b8fa-4324-9a39-27b6ded04b2d",
+        "transcript_final_to_llm_first_token_ms": 22.7,
+        "transcript_final_to_first_segment_ms": 119.8,
+        "transcript_final_to_first_audio_ms": 233.5,
+        "llm_first_token_to_first_audio_ms": 210.9,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 720.8,
+      "end_of_speech_to_first_llm_token_ms": 743.5,
+      "end_of_speech_to_first_audio_ms": 955.4
+    },
+    {
+      "turn": 17,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "b5ee67a0-6958-45c9-85a0-297e3785cd36",
+        "transcript_final_to_llm_first_token_ms": 34.6,
+        "transcript_final_to_first_segment_ms": 125.6,
+        "transcript_final_to_first_audio_ms": 214.5,
+        "llm_first_token_to_first_audio_ms": 179.9,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 680.9,
+      "end_of_speech_to_first_llm_token_ms": 715.5,
+      "end_of_speech_to_first_audio_ms": 896.2
+    },
+    {
+      "turn": 18,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "a44eb1af-7537-4b39-ad44-e7c4c71fec3e",
+        "transcript_final_to_llm_first_token_ms": 40.7,
+        "transcript_final_to_first_segment_ms": 121.3,
+        "transcript_final_to_first_audio_ms": 217.3,
+        "llm_first_token_to_first_audio_ms": 176.6,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 702.1,
+      "end_of_speech_to_first_llm_token_ms": 742.6,
+      "end_of_speech_to_first_audio_ms": 922.1
+    },
+    {
+      "turn": 19,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "bcaa9f4c-23d4-4b2b-aeec-8de10c81b3b1",
+        "transcript_final_to_llm_first_token_ms": 36.6,
+        "transcript_final_to_first_segment_ms": 124.6,
+        "transcript_final_to_first_audio_ms": 244.4,
+        "llm_first_token_to_first_audio_ms": 207.8,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 761.0,
+      "end_of_speech_to_first_llm_token_ms": 797.6,
+      "end_of_speech_to_first_audio_ms": 1006.3
+    },
+    {
+      "turn": 20,
+      "server": {
+        "type": "turn_metrics",
+        "utterance_id": "d0cc9be7-5c29-47f2-815a-9e27ad0a0c91",
+        "transcript_final_to_llm_first_token_ms": 39.9,
+        "transcript_final_to_first_segment_ms": 129.9,
+        "transcript_final_to_first_audio_ms": 305.7,
+        "llm_first_token_to_first_audio_ms": 265.8,
+        "interrupted": false
+      },
+      "end_of_speech_to_final_transcript_ms": 720.9,
+      "end_of_speech_to_first_llm_token_ms": 761.9,
+      "end_of_speech_to_first_audio_ms": 1028.1
+    }
+  ],
+  "barge_in": []
+}
