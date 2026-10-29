@@ -49,4 +49,4 @@ See [docs/operations/environment-variables.md](operations/environment-variables.
 
 ## Release process
 
-See [docs/release/release-checklist.md](release/release-checklist.md).
+There is no release process: this is a personal prototype with no hosted service.

@@ -38,21 +38,21 @@ python scripts/bench_voice_latency.py --url ws://localhost:8000/api/v1/ --turns 
 python scripts/bench_voice_latency.py --barge-in --turns 12
 ```
 
-**Results with the built-in mock engines** (4 October 2026, one laptop, client and server on the same
+**Results with the built-in mock engines** (29 October 2026, one laptop, client and server on the same
 machine, 20 turns; 12 turns for barge-in):
 
 | Measure | Median | 95th percentile |
 |---|---|---|
-| End of speech → first reply audio | 450 ms | 490 ms |
-| Final transcript → first reply audio (server-side) | 149 ms | 167 ms |
-| Final transcript → first LLM token (server-side) | 28 ms | 38 ms |
-| Caller starts talking → reply stopped (barge-in) | 76 ms | 111 ms |
-| Time an audio frame waits in the inbound queue | about 2 ms | |
+| End of speech → first reply audio | 452 ms | 476 ms |
+| Final transcript → first reply audio (server-side) | 149 ms | 168 ms |
+| Final transcript → first LLM token (server-side) | 30 ms | 38 ms |
+| Caller starts talking → reply stopped (barge-in) | 62 ms | 255 ms |
 
 Read these as **pipeline overhead, not real-world latency**. The mock recogniser waits 300 ms of
 silence before ending a turn (that is most of the first row), the mock LLM emits a token every
-20–40 ms and the mock voice needs no network. Barge-in varied between runs (medians from 76 to
-119 ms).
+20–40 ms and the mock voice needs no network. Barge-in varies between runs (earlier medians 62–119 ms;
+one slow turn in this run set the 95th percentile). The inbound queue no longer polls: the
+dispatcher sleeps on an event and wakes as soon as a frame arrives.
 
 **Results with real providers: not measured yet.** Add keys (below), run the same command, and put
 the numbers here. Expect the end-of-speech figure to be dominated by the recogniser's end-of-turn
@@ -82,11 +82,8 @@ Voice demo (live microphone, playback, latency readout), on http://localhost:517
 cd web && npm install && npm run dev
 ```
 
-Admin console prototype, on http://localhost:5173 (needs PostgreSQL and `DATABASE_URL`):
-
-```bash
-cd dashboard && npm install && npm run dev
-```
+`dashboard/` is the project's landing page and an admin console prototype. Its admin pages call
+the agent-platform APIs, which now live on the `platform-sketches` branch (see below).
 
 ### Real providers
 
@@ -129,32 +126,30 @@ Mock engines are never used when `ENVIRONMENT=production`; a missing provider is
 - One LLM request per turn; no tool calling in the voice path.
 - The audio queue assumes the client sends at real-time cadence, as a microphone does.
 
-## Experimental REST modules
+## Agent-platform sketches (moved to a branch)
 
-`app/iam`, `app/planner`, `app/verifier`, `app/workflow`, `app/knowledge`, `app/rag`, `app/memory`,
-`app/tools` and `app/integrations` are design sketches of an "agent platform". They have REST
-endpoints and unit tests, but:
+Earlier revisions also carried design sketches of an "agent platform" (planner, verifier, workflow,
+knowledge/RAG, memory, tools, integrations, tenants) with REST endpoints and unit tests. None of them
+was used by the voice path, several were keyword rules or returned fixed sample data, and they had
+no security review. They were removed from `main` to keep this repository focused on the voice
+agent, and are kept unchanged on the
+[`platform-sketches`](https://github.com/zahidhasancode/voxera/tree/platform-sketches) branch.
 
-- none of them is used by the voice path;
-- planner, verifier and compliance checks are keyword rules, not models;
-- tool and integration adapters return fixed sample data;
-- the vector store keeps embeddings as JSON and ranks in Python (it does not use pgvector);
-- they have had no security review, and several authorization checks are known to be missing.
-
-Do not deploy them. The older README with their API examples is kept at
-[docs/legacy-readme.md](docs/legacy-readme.md); the documents under `docs/release/` describe a
-release process that never took place.
+`app/iam` stays on `main`: it provides the token check used by the voice WebSocket in staging and
+production.
 
 ## Tests
 
 ```bash
-python -m pytest -m "not integration and not slow"     # 287 tests, no network, no database
+python -m pytest -m "not integration and not slow"     # 136 tests, no network, no database
 ruff check app/ tests/ scripts/
 ```
 
 The voice tests (`tests/voice/`, `tests/telephony_voice/`) use deterministic fake engines and cover
 sentence streaming, interruption during generation and during playback, pacing, history, the
 Deepgram end-of-turn logic, the 24 kHz → 16 kHz resampler and the WebSocket endpoint end to end.
+`tests/streaming/` covers drop-oldest backpressure, event wake-up, frame order and clean shutdown of
+the inbound audio path.
 
 ## Licence
 

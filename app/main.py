@@ -37,10 +37,6 @@ async def lifespan(app: FastAPI):
     settings.validate_security_settings()
     from app.voice.registry import validate_voice_platform
 
-    if settings.database_enabled:
-        from app.infrastructure.knowledge.providers import validate_knowledge_platform
-
-        await validate_knowledge_platform()
     await validate_voice_platform()
     yield
     logger.info("Initiating graceful shutdown")

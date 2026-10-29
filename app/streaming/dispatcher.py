@@ -11,8 +11,9 @@ from app.streaming.metrics import StreamingMetrics
 
 logger = get_logger(__name__)
 
-# How long to wait before looking again when the queue is empty
-IDLE_POLL_SEC = 0.002
+# Longest idle wait before re-checking whether the dispatcher was stopped.
+# Frames wake the loop immediately through the queue's event; this is only a stop check.
+IDLE_WAKE_SEC = 0.1
 
 # Frame interval in seconds (20ms)
 FRAME_INTERVAL_MS = 20
@@ -111,13 +112,14 @@ class StreamingDispatcher:
         takes one frame per 20 ms tick can never catch up after the smallest
         delay, and the queue slowly fills until it adds its full length (about
         one second) to every turn and starts dropping audio. The loop drains
-        whatever is waiting and only idles when the queue is empty.
+        whatever is waiting and, when the queue is empty, sleeps until the queue
+        signals a new frame (no polling interval).
         """
         while self._running:
             frame_with_id = await self.queue.dequeue()
 
             if frame_with_id is None:
-                await asyncio.sleep(IDLE_POLL_SEC)
+                await self.queue.wait_for_frame(timeout=IDLE_WAKE_SEC)
                 continue
 
             try:

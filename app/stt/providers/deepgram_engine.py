@@ -97,8 +97,8 @@ class DeepgramStreamingSTTEngine(StreamingSTTEngine):
             if self._ws is not None:
                 try:
                     await self._ws.close()
-                except Exception:
-                    pass
+                except Exception as exc:  # closing a socket that already failed
+                    logger.debug("Deepgram socket close failed", extra_fields={"error": repr(exc)})
             self._ws = None
             self._connected = False
 

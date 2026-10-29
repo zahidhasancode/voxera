@@ -131,8 +131,8 @@ class TTSConsumer:
     async def _safe_send_json(self, payload: dict) -> None:
         try:
             await self.send_json(payload)
-        except Exception:  # the socket may already be closed
-            pass
+        except Exception as exc:  # the socket may already be closed
+            logger.debug("TTS event not sent", extra_fields={"type": payload.get("type"), "error": repr(exc)})
 
     async def _run(self, utterance_id: str, queue: "asyncio.Queue[Optional[str]]") -> None:
         started = time.monotonic()

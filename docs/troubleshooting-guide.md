@@ -51,5 +51,4 @@ Structured JSON: stdout and `logs/voxera.json`. Filter by `request_id`, `tenant_
 ## Getting help
 
 1. Check [docs/operations/incident-response.md](operations/incident-response.md)
-2. Review [docs/release/known-issues.md](release/known-issues.md)
-3. Escalate per on-call runbook
+2. Check the "Known limits" section of the README

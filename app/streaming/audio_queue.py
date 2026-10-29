@@ -51,6 +51,8 @@ class AudioFrameQueue:
         self.max_size = max_size
         self._queue: deque[FrameWithId] = deque(maxlen=max_size)
         self._lock = asyncio.Lock()
+        # Set while at least one frame is waiting, so consumers can sleep until a frame arrives.
+        self._not_empty = asyncio.Event()
         self.frames_dropped = 0
         self.frames_enqueued = 0
         self._metrics = metrics
@@ -95,6 +97,7 @@ class AudioFrameQueue:
             frame_with_id = FrameWithId(frame, frame_id) if frame_id is not None else FrameWithId(frame, -1)
             self._queue.append(frame_with_id)
             self.frames_enqueued += 1
+            self._not_empty.set()
 
             return True
 
@@ -114,8 +117,21 @@ class AudioFrameQueue:
                 queue_depth_after = len(self._queue)
                 if self._metrics and frame_with_id.frame_id >= 0:
                     self._metrics.record_dequeue(frame_with_id.frame_id, queue_depth_after)
+                if not self._queue:
+                    self._not_empty.clear()
                 return frame_with_id
+            self._not_empty.clear()
             return None
+
+    async def wait_for_frame(self, timeout: Optional[float] = None) -> bool:
+        """Sleep until a frame is waiting (or the timeout passes). Returns True if one is."""
+        if self._queue:
+            return True
+        try:
+            await asyncio.wait_for(self._not_empty.wait(), timeout)
+        except asyncio.TimeoutError:
+            return False
+        return True
 
     async def dequeue_blocking(self) -> FrameWithId:
         """Blocking dequeue - waits until frame is available.
@@ -127,8 +143,7 @@ class AudioFrameQueue:
             frame = await self.dequeue()
             if frame is not None:
                 return frame
-            # Wait a short time before checking again
-            await asyncio.sleep(0.001)  # 1ms
+            await self.wait_for_frame()
 
     def size(self) -> int:
         """Get current queue size.
@@ -171,3 +186,4 @@ class AudioFrameQueue:
     def clear(self) -> None:
         """Clear all frames from queue."""
         self._queue.clear()
+        self._not_empty.clear()

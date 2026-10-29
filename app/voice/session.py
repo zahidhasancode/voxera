@@ -177,5 +177,5 @@ class VoiceSession:
     async def _safe_send(self, payload: dict) -> None:
         try:
             await self._send_json(payload)
-        except Exception:  # the socket may already be closed
-            pass
+        except Exception as exc:  # the socket may already be closed
+            logger.debug("Session event not sent", extra_fields={"type": payload.get("type"), "error": repr(exc)})

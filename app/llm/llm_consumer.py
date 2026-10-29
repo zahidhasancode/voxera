@@ -74,8 +74,8 @@ class LLMConsumer:
     async def _safe_send(self, payload: dict) -> None:
         try:
             await self.send_json(payload)
-        except Exception:  # the socket may already be closed
-            pass
+        except Exception as exc:  # the socket may already be closed
+            logger.debug("LLM event not sent", extra_fields={"type": payload.get("type"), "error": repr(exc)})
 
     async def start_generation(
         self,

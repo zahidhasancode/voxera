@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
@@ -13,7 +12,6 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.observability import platform_metrics
 from app.database.session import get_engine, get_session_factory
-from app.infrastructure.knowledge.providers import get_embedding_provider, get_vector_store
 from app.streaming.metrics import streaming_metrics
 
 APP_VERSION = "0.1.0"
@@ -42,62 +40,8 @@ async def check_database() -> dict[str, Any]:
         return {"status": "unhealthy", "message": str(exc)}
 
 
-async def check_storage() -> dict[str, Any]:
-    path = Path(settings.KNOWLEDGE_STORAGE_PATH)
-    try:
-        path.mkdir(parents=True, exist_ok=True)
-        test_file = path / ".healthcheck"
-        test_file.write_text("ok")
-        test_file.unlink(missing_ok=True)
-        return {"status": "healthy", "path": str(path)}
-    except Exception as exc:
-        platform_metrics.record_dependency_failure("storage")
-        return {"status": "unhealthy", "path": str(path), "message": str(exc)}
 
 
-def check_embedding_provider() -> dict[str, Any]:
-    provider_name = settings.KNOWLEDGE_DEFAULT_EMBEDDING_PROVIDER
-    if not provider_name:
-        return {"status": "skipped", "message": "Not configured"}
-    provider = get_embedding_provider()
-    provider_type = type(provider).__name__
-    if provider_type.startswith("Unconfigured"):
-        return {
-            "status": "degraded",
-            "provider": provider_name,
-            "implementation": provider_type,
-            "message": "Provider configured but not implemented",
-        }
-    return {"status": "healthy", "provider": provider_name, "implementation": provider_type}
-
-
-def check_vector_store() -> dict[str, Any]:
-    store_name = settings.KNOWLEDGE_DEFAULT_VECTOR_STORE
-    if not store_name:
-        return {"status": "skipped", "message": "Not configured"}
-    store = get_vector_store()
-    store_type = type(store).__name__
-    if store_type.startswith("Unconfigured"):
-        return {
-            "status": "degraded",
-            "provider": store_name,
-            "implementation": store_type,
-            "message": "Vector store configured but not implemented",
-        }
-    return {"status": "healthy", "provider": store_name, "implementation": store_type}
-
-
-def check_domain_modules() -> dict[str, dict[str, Any]]:
-    """Verify enterprise domain modules are loadable without invoking business logic."""
-    modules = {}
-    for name in ("planner", "verifier", "workflow", "tools", "memory", "rag"):
-        try:
-            __import__(f"app.{name}")
-            modules[name] = {"status": "healthy"}
-        except Exception as exc:
-            modules[name] = {"status": "unhealthy", "message": str(exc)}
-            platform_metrics.record_dependency_failure(name)
-    return modules
 
 
 def check_streaming() -> dict[str, Any]:
@@ -153,12 +97,8 @@ async def ready_check() -> dict[str, Any]:
 
     checks = {
         "database": await check_database(),
-        "storage": await check_storage(),
-        "embedding_provider": check_embedding_provider(),
-        "vector_store": check_vector_store(),
         "redis": check_redis_future(),
         "queue": check_queue_future(),
-        "domains": check_domain_modules(),
     }
     status = _aggregate_status(checks)
     return {

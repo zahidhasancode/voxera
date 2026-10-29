@@ -1,1 +1,0 @@
-"""Integration platform package."""

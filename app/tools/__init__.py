@@ -1,1 +1,0 @@
-"""Enterprise tool execution framework."""
