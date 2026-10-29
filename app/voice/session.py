@@ -23,6 +23,7 @@ from app.stt.models import TranscriptEvent, TranscriptType
 from app.tts.streaming_engine import StreamingTTSEngine
 from app.tts.tts_consumer import TTSConsumer
 from app.voice.turn_metrics import TurnTiming, voice_latency_stats
+from app.voice.vad import EnergyVAD
 
 logger = get_logger(__name__)
 
@@ -42,6 +43,7 @@ class VoiceSession:
         send_bytes: SendBytes,
         history_turns: Optional[int] = None,
         tts_max_lead_seconds: Optional[float] = None,
+        vad_barge_in: Optional[bool] = None,
     ) -> None:
         self.state = ConversationState()
         self.conversation_id = str(self.state.conversation_id)
@@ -61,6 +63,12 @@ class VoiceSession:
             on_first_audio=self._on_first_audio,
             on_playback_end=self._on_playback_end,
         )
+        use_vad = settings.VOICE_VAD_BARGE_IN if vad_barge_in is None else vad_barge_in
+        self.vad: Optional[EnergyVAD] = (
+            EnergyVAD(min_energy=settings.VOICE_VAD_MIN_ENERGY, speech_frames=settings.VOICE_VAD_SPEECH_FRAMES)
+            if use_vad
+            else None
+        )
         self.turn_manager = TurnManager(
             state=self.state,
             on_user_turn_started=self._on_user_turn_started,
@@ -73,6 +81,18 @@ class VoiceSession:
     async def process_transcript_event(self, event: TranscriptEvent) -> None:
         """Feed one STT event (partial or final) into turn-taking."""
         await self.turn_manager.process_transcript_event(event)
+
+    async def process_audio_frame(self, frame: bytes) -> None:
+        """Feed one inbound PCM16 frame. Speech while the agent talks stops the reply at once.
+
+        The recogniser still drives turn-taking; this only makes barge-in faster than
+        waiting for its first partial transcript.
+        """
+        if self.vad is None:
+            return
+        speech_started = self.vad.update(frame)
+        if speech_started and self.state.is_system_speaking:
+            await self.turn_manager.handle_interruption()
 
     async def inject_transcript(self, text: str) -> None:
         """Development helper: behave as if the user had said `text`."""

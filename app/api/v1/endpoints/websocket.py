@@ -25,10 +25,6 @@ logger = get_logger(__name__)
 manager = ws_connection_manager
 
 
-async def _noop_frame_callback(_frame: bytes) -> None:
-    """The dispatcher fans frames out to the STT consumer; nothing else listens yet."""
-
-
 @router.websocket("/")
 async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(default=None)):
     """Voice WebSocket: PCM16 audio in, transcripts, LLM tokens and speech out.
@@ -81,7 +77,8 @@ async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(def
                 )
 
         stt_consumer = STTConsumer(engine=stt_engine, transcript_callback=transcript_callback, max_queue_size=50)
-        dispatcher = StreamingDispatcher(queue=audio_queue, callback=_noop_frame_callback, metrics=streaming_metrics)
+        # Every inbound frame goes to the session (voice activity / fast barge-in) and to the recogniser.
+        dispatcher = StreamingDispatcher(queue=audio_queue, callback=session.process_audio_frame, metrics=streaming_metrics)
         dispatcher.register_stt_consumer(stt_consumer)
         await stt_consumer.start()
         await dispatcher.start()

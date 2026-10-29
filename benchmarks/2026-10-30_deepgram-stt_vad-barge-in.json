@@ -1,0 +1,131 @@
+{
+  "providers": {
+    "stt": "deepgram",
+    "llm": "mock",
+    "tts": "mock"
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "end_of_speech_to_final_transcript_ms": 683.0,
+      "end_of_speech_to_first_llm_token_ms": 720.7,
+      "end_of_speech_to_first_audio_ms": 847.8
+    },
+    {
+      "turn": 2,
+      "end_of_speech_to_final_transcript_ms": 663.4,
+      "end_of_speech_to_first_llm_token_ms": 701.7,
+      "end_of_speech_to_first_audio_ms": 843.2
+    },
+    {
+      "turn": 3,
+      "end_of_speech_to_final_transcript_ms": 642.5,
+      "end_of_speech_to_first_llm_token_ms": 679.7,
+      "end_of_speech_to_first_audio_ms": 794.0
+    },
+    {
+      "turn": 4,
+      "end_of_speech_to_final_transcript_ms": 665.1,
+      "end_of_speech_to_first_llm_token_ms": 700.9,
+      "end_of_speech_to_first_audio_ms": 827.1
+    },
+    {
+      "turn": 5,
+      "end_of_speech_to_final_transcript_ms": 663.2,
+      "end_of_speech_to_first_llm_token_ms": 698.4,
+      "end_of_speech_to_first_audio_ms": 822.5
+    },
+    {
+      "turn": 6,
+      "end_of_speech_to_final_transcript_ms": 662.6,
+      "end_of_speech_to_first_llm_token_ms": 693.3,
+      "end_of_speech_to_first_audio_ms": 832.4
+    },
+    {
+      "turn": 7,
+      "end_of_speech_to_final_transcript_ms": 661.2,
+      "end_of_speech_to_first_llm_token_ms": 700.9,
+      "end_of_speech_to_first_audio_ms": 820.6
+    },
+    {
+      "turn": 8,
+      "end_of_speech_to_final_transcript_ms": 663.1,
+      "end_of_speech_to_first_llm_token_ms": 699.0,
+      "end_of_speech_to_first_audio_ms": 812.6
+    },
+    {
+      "turn": 9,
+      "end_of_speech_to_final_transcript_ms": 661.8,
+      "end_of_speech_to_first_llm_token_ms": 700.0,
+      "end_of_speech_to_first_audio_ms": 807.5
+    },
+    {
+      "turn": 10,
+      "end_of_speech_to_final_transcript_ms": 661.2,
+      "end_of_speech_to_first_llm_token_ms": 699.4,
+      "end_of_speech_to_first_audio_ms": 810.8
+    },
+    {
+      "turn": 11,
+      "end_of_speech_to_final_transcript_ms": 661.1,
+      "end_of_speech_to_first_llm_token_ms": 680.4,
+      "end_of_speech_to_first_audio_ms": 794.2
+    },
+    {
+      "turn": 12,
+      "end_of_speech_to_final_transcript_ms": 662.4,
+      "end_of_speech_to_first_llm_token_ms": 698.5,
+      "end_of_speech_to_first_audio_ms": 825.7
+    }
+  ],
+  "barge_in": [
+    {
+      "speech_start_to_reply_stopped_ms": 59.225917037110776,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 58.46854200353846,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 64.50929201673716,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 74.11083299666643,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 123.4945830074139,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 64.14095795480534,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 61.481709009967744,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 45.7155829644762,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 67.49437499092892,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 109.14229199988768,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 52.69270797725767,
+      "audio_frames_after_stop": 0
+    },
+    {
+      "speech_start_to_reply_stopped_ms": 53.92824998125434,
+      "audio_frames_after_stop": 0
+    }
+  ]
+}

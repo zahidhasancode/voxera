@@ -63,16 +63,19 @@ so the "first reply audio" rows do not yet include a real LLM's time to first to
 | End of speech → final transcript | **634 / 702 ms** | **711 / 761 ms** |
 | End of speech → first reply audio | 786 / 862 ms (mock voice) | **943 / 1102 ms** (real Polly voice) |
 | Final transcript → first reply audio (server-side) | 152 / 170 ms (mock voice) | 228 / 306 ms (Polly) |
-| Caller starts talking → reply stopped (barge-in) | **445 / 472 ms** | **731 / 759 ms** |
+| Caller starts talking → reply stopped, barge-in from the recogniser's first words | 445 / 472 ms | 731 / 759 ms |
+| **Caller starts talking → reply stopped, barge-in from raw audio (VAD, 30 Oct)** | **63 / 109 ms** | not re-measured |
 | Audio frames received after the stop signal | 0 | 0 |
 
 20 turns each; 12 turns for barge-in. What the numbers show:
 
 - About 300 ms of "end of speech → final transcript" is the deliberate end-of-turn silence wait;
   the rest is recognition plus the network round trip from Barcelona.
-- Barge-in is detected from the recogniser's first partial result, so it follows the recogniser:
-  Deepgram's first words arrive sooner than Transcribe's, which makes interruptions about 0.3 s
-  faster.
+- Barge-in used to wait for the recogniser's first partial result, so it followed the
+  recogniser (Deepgram about 0.3 s faster than Transcribe). Voxera now also watches the raw
+  inbound audio (`app/voice/vad.py`): three consecutive 20 ms frames clearly louder than the learned
+  background stop the reply. That cut barge-in from 445 ms to 63 ms (median) with Deepgram, with
+  no audio sent after the stop and no false interruptions in 20 normal turns.
 - Polly adds roughly 200 ms from the first finished sentence to the first audio frame.
 
 Not measured yet: a real LLM in the loop (Amazon Bedrock is waiting for account verification) and
@@ -151,8 +154,9 @@ Mock engines are never used when `ENVIRONMENT=production`; a missing provider is
 ## Known limits
 
 - End of turn is a fixed silence wait. A pause in the middle of a sentence can end the turn early.
-- Barge-in is detected from recognised speech, so it is as fast as the recogniser's first partial
-  result. The browser demo relies on the browser's echo cancellation to keep the reply out of the mic.
+- Fast barge-in (`VOICE_VAD_BARGE_IN`, on by default) reacts to loudness, not words: a cough or a
+  loud noise also stops the reply. It relies on the client's echo cancellation (browsers provide it)
+  to keep the agent's own voice out of the microphone, so the phone bridge does not use it.
 - One LLM request per turn; no tool calling in the voice path.
 - The audio queue assumes the client sends at real-time cadence, as a microphone does.
 
@@ -171,7 +175,7 @@ production.
 ## Tests
 
 ```bash
-python -m pytest -m "not integration and not slow"     # 147 tests, no network, no database
+python -m pytest -m "not integration and not slow"     # 155 tests, no network, no database
 ruff check app/ tests/ scripts/
 ```
 

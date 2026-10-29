@@ -126,6 +126,11 @@ class Settings(BaseSettings):
     VOICE_TTS_MODEL: str = Field(default="tts-1", description="OpenAI TTS model when using openai_audio")
     VOICE_SAMPLE_RATE: int = Field(default=16000, ge=8000, le=48000)
     VOICE_FRAME_MS: int = Field(default=20, ge=10, le=60)
+    # Barge-in from raw audio: stop the reply when the caller starts talking, without
+    # waiting for the recogniser's first words. Needs client-side echo cancellation.
+    VOICE_VAD_BARGE_IN: bool = Field(default=True)
+    VOICE_VAD_MIN_ENERGY: float = Field(default=500.0, ge=0.0)
+    VOICE_VAD_SPEECH_FRAMES: int = Field(default=3, ge=1, le=50)
     VOICE_PCM_FRAME_BYTES: int = Field(default=640, ge=320, le=4096)
     VOICE_ALLOW_MOCK_PROVIDERS: Optional[bool] = Field(
         default=None,
