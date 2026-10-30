@@ -131,6 +131,10 @@ class Settings(BaseSettings):
     VOICE_VAD_BARGE_IN: bool = Field(default=True)
     VOICE_VAD_MIN_ENERGY: float = Field(default=500.0, ge=0.0)
     VOICE_VAD_SPEECH_FRAMES: int = Field(default=3, ge=1, le=50)
+    VOICE_EOT_HOLD_MS: int = Field(
+        default=700, ge=0, le=5000,
+        description="Extra wait before replying when a finished transcript sounds unfinished (0 turns it off)",
+    )
     VOICE_PCM_FRAME_BYTES: int = Field(default=640, ge=320, le=4096)
     VOICE_ALLOW_MOCK_PROVIDERS: Optional[bool] = Field(
         default=None,

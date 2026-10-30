@@ -8,6 +8,7 @@ here, so it can be tested without a network.
 
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 from typing import Awaitable, Callable, Optional
@@ -22,6 +23,7 @@ from app.llm.streaming_engine import StreamingLLMEngine
 from app.stt.models import TranscriptEvent, TranscriptType
 from app.tts.streaming_engine import StreamingTTSEngine
 from app.tts.tts_consumer import TTSConsumer
+from app.voice.end_of_turn import sounds_unfinished
 from app.voice.turn_metrics import TurnTiming, voice_latency_stats
 from app.voice.vad import EnergyVAD
 
@@ -44,6 +46,7 @@ class VoiceSession:
         history_turns: Optional[int] = None,
         tts_max_lead_seconds: Optional[float] = None,
         vad_barge_in: Optional[bool] = None,
+        eot_hold_ms: Optional[int] = None,
     ) -> None:
         self.state = ConversationState()
         self.conversation_id = str(self.state.conversation_id)
@@ -69,6 +72,10 @@ class VoiceSession:
             if use_vad
             else None
         )
+        # A transcript that sounds unfinished waits here for the caller to go on.
+        self._eot_hold_seconds = (settings.VOICE_EOT_HOLD_MS if eot_hold_ms is None else eot_hold_ms) / 1000.0
+        self._held: Optional[UserTurnCompleted] = None
+        self._hold_task: Optional[asyncio.Task] = None
         self.turn_manager = TurnManager(
             state=self.state,
             on_user_turn_started=self._on_user_turn_started,
@@ -91,8 +98,14 @@ class VoiceSession:
         if self.vad is None:
             return
         speech_started = self.vad.update(frame)
-        if speech_started and self.state.is_system_speaking:
+        if not speech_started:
+            return
+        if self.state.is_system_speaking:
             await self.turn_manager.handle_interruption()
+        elif self._held is not None:
+            # The caller went on talking: restart the wait so the reply does not start
+            # in the gap before the recogniser's first words arrive.
+            self._start_hold_timer()
 
     async def inject_transcript(self, text: str) -> None:
         """Development helper: behave as if the user had said `text`."""
@@ -111,6 +124,8 @@ class VoiceSession:
 
     async def close(self) -> None:
         """Stop everything (the connection is going away)."""
+        self._cancel_hold_timer()
+        self._held = None
         await self.llm.aclose()
         await self.tts.stop(reason="closed")
 
@@ -119,6 +134,8 @@ class VoiceSession:
     async def _on_user_turn_started(self, _event: UserTurnStarted) -> None:
         # New speech always wins over a reply that is still being generated.
         self.llm.cancel()
+        # A held turn is continued by this speech, so its timer must not fire.
+        self._cancel_hold_timer()
 
     async def _on_user_interrupted(self, _event: UserInterrupted) -> None:
         """Barge-in: stop generating and stop speaking, now."""
@@ -137,10 +154,26 @@ class VoiceSession:
             )
 
     async def _on_user_turn_completed(self, event: UserTurnCompleted) -> None:
-        """The user finished a sentence: generate and speak the reply."""
+        """The recogniser ended a turn: reply now, or wait if it sounds unfinished."""
         text = event.transcript.strip()
+        if self._held is not None:
+            # The caller went on after a held pause: both parts are one turn.
+            text = f"{self._held.transcript.strip()} {text}".strip()
+            event = UserTurnCompleted(utterance_id=self._held.utterance_id, transcript=text)
+            self._held = None
+        self._cancel_hold_timer()
         if not text:
             return
+        if self._eot_hold_seconds > 0 and sounds_unfinished(text):
+            self._held = event
+            self._start_hold_timer()
+            await self._safe_send({"type": "turn_held", "utterance_id": event.utterance_id})
+            return
+        await self._reply(event)
+
+    async def _reply(self, event: UserTurnCompleted) -> None:
+        """Generate and speak the reply to one user turn."""
+        text = event.transcript.strip()
         timing = TurnTiming(utterance_id=event.utterance_id)
         self._timing = timing
         history = list(self.history)
@@ -183,6 +216,25 @@ class VoiceSession:
             self._timing = None
         if not interrupted and not self.llm.is_generating and self.tts.current_utterance_id in (None, utterance_id):
             self.state.complete_system_turn()
+
+    # ------------------------------------------------------------ held turns
+
+    def _start_hold_timer(self) -> None:
+        self._cancel_hold_timer()
+        self._hold_task = asyncio.create_task(self._release_held_turn())
+
+    def _cancel_hold_timer(self) -> None:
+        task, self._hold_task = self._hold_task, None
+        if task is not None and task is not asyncio.current_task():
+            task.cancel()
+
+    async def _release_held_turn(self) -> None:
+        """The caller stayed silent after an unfinished-sounding turn: answer it as it is."""
+        await asyncio.sleep(self._eot_hold_seconds)
+        held, self._held = self._held, None
+        self._hold_task = None
+        if held is not None:
+            await self._reply(held)
 
     # ---------------------------------------------------------------- helpers
 

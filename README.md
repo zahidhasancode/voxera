@@ -19,6 +19,7 @@ certifications and no hosted service.
 | Bounded inbound audio queue, drop-oldest under backpressure | Working, tested |
 | Turn-taking state machine | Working, tested |
 | Barge-in: user speech stops the reply while it is being generated **and while it is playing** | Working, tested |
+| End of turn reads the words: a sentence that ends on "and", "for", "um" or a comma waits up to 700 ms for the caller to go on | Working, tested. Not yet measured with real callers |
 | Sentence-by-sentence speech: TTS starts on the first finished sentence, not the full answer | Working, tested |
 | Conversation history sent to the LLM (last `VOICE_HISTORY_TURNS` turns) | Working, tested |
 | Provider adapters: Deepgram, Amazon Transcribe (STT); OpenAI, Anthropic, Groq, xAI, Azure OpenAI, Amazon Bedrock (LLM); ElevenLabs, OpenAI, Amazon Polly (TTS) | Deepgram, Amazon Transcribe and Amazon Polly **measured against the live services** (results below). Amazon Bedrock implemented and unit-tested; the live run is waiting for AWS account verification. The others are implemented, not yet run live |
@@ -153,7 +154,10 @@ Mock engines are never used when `ENVIRONMENT=production`; a missing provider is
 
 ## Known limits
 
-- End of turn is a fixed silence wait. A pause in the middle of a sentence can end the turn early.
+- End of turn is a silence wait plus a word check (`app/voice/end_of_turn.py`): a transcript that
+  ends on a joining word, an article, a filler or a comma waits up to `VOICE_EOT_HOLD_MS` (700 ms)
+  for the caller to go on. It is an English word list, not a model, and cannot hear intonation; a
+  pause after a complete-sounding phrase ("I'd like the pasta... and a salad") still ends the turn.
 - Fast barge-in (`VOICE_VAD_BARGE_IN`, on by default) reacts to loudness, not words: a cough or a
   loud noise also stops the reply. It relies on the client's echo cancellation (browsers provide it)
   to keep the agent's own voice out of the microphone, so the phone bridge does not use it.
@@ -175,7 +179,7 @@ production.
 ## Tests
 
 ```bash
-python -m pytest -m "not integration and not slow"     # 155 tests, no network, no database
+python -m pytest -m "not integration and not slow"     # 174 tests, no network, no database
 ruff check app/ tests/ scripts/
 ```
 
